@@ -1,78 +1,68 @@
 import { MONSTERS } from './monster-data.js';
 
-function getStageMonsters(stage) {
-    if (stage <= 0) stage = 1; // 스테이지가 0 이하일 경우 1로 보정
+// Helper function to get a random monster from a specified group and grade
+function getRandomMonster(group, grade = 'Normal') {
+    const monsterKeys = Object.keys(group).filter(k => {
+        if (grade === 'Boss') return k === 'boss';
+        return k !== 'boss';
+    });
 
-    const stagesPerGroup = 5; 
-    const groupIndex = Math.floor((stage - 1) / stagesPerGroup) % MONSTERS.length;
-    const group = MONSTERS[groupIndex];
-    const monsterKeys = Object.keys(group).filter(k => k !== 'boss');
-
-    if (monsterKeys.length === 0) {
-        // 보스를 제외한 몬스터가 없는 경우에 대한 안전 장치
-        // 이 경우, 다른 그룹의 몬스터를 가져오거나 기본 몬스터를 사용
-        const fallbackGroup = MONSTERS[(groupIndex + 1) % MONSTERS.length];
+    if (monsterKeys.length === 0) { // Fallback
+        const fallbackGroup = MONSTERS[0];
         const fallbackKeys = Object.keys(fallbackGroup).filter(k => k !== 'boss');
-        monsterKeys.push(...fallbackKeys);
+        const randomKey = fallbackKeys[Math.floor(Math.random() * fallbackKeys.length)];
+        return fallbackGroup[randomKey];
     }
 
-    const stageMonsters = [];
-    const requiredKills = stage;
-
-    // 항상 최소 1마리의 몬스터를 보장하고, 스테이지에 따라 몬스터 수를 늘림
-    for (let i = 0; i < requiredKills; i++) {
-        const monsterKey = monsterKeys[i % monsterKeys.length];
-        const grade = (i > 0 && i % 4 === 0) ? 'Elite' : 'Normal'; // 5번째 몬스터마다 엘리트
-        stageMonsters.push({ ...group[monsterKey], grade });
-    }
-
-    return stageMonsters;
+    const randomKey = monsterKeys[Math.floor(Math.random() * monsterKeys.length)];
+    return group[randomKey];
 }
 
-
-// 몬스터 체력과 골드를 스테이지와 등급에 따라 조정하는 함수
+// Scale monster stats based on stage and grade
 function scaleMonsterStats(monster, stage, grade) {
-    // monster가 undefined이거나 null일 경우를 대비한 방어 코드
     if (!monster) {
-        console.error("scaleMonsterStats: monster is undefined. Stage:", stage, "Grade:", grade);
-        // 기본값 또는 에러 처리에 적합한 대체 몬스터를 반환
-        monster = { name: 'Lost Goblin', hp: 10, gold: 1, ...MONSTERS[0].goblin };
+        console.error("scaleMonsterStats: monster template is undefined.");
+        monster = { name: 'Lost Goblin', hp: 10, ap: 1, gold: 1, attack_speed: 1 }; // Default fallback
     }
 
     const gradeMultiplier = { 'Normal': 1, 'Elite': 3, 'Boss': 10 };
     const multiplier = gradeMultiplier[grade] || 1;
-    
     const scaleFactor = Math.pow(1.25, Math.max(0, stage - 1));
 
-    const scaledMonster = {
-        ...monster, 
-        hp: Math.floor(monster.hp * scaleFactor * multiplier),
-        maxHp: Math.floor(monster.hp * scaleFactor * multiplier), 
-        gold: Math.floor(monster.gold * scaleFactor * multiplier),
-        grade: grade, 
+    const maxHp = Math.floor((monster.hp || 10) * scaleFactor * multiplier);
+    const attackPower = Math.floor((monster.ap || 1) * scaleFactor * multiplier);
+
+    return {
+        ...monster,
+        hp: maxHp,
+        maxHp: maxHp,
+        ap: attackPower,
+        gold: Math.floor((monster.gold || 1) * scaleFactor * multiplier),
+        grade: grade,
+        // attack_speed is not scaled
     };
-    return scaledMonster;
 }
 
-// 현재 유저의 상태에 맞는 몬스터를 가져오는 함수
+// Get the current monster for the user
 export function getCurrentMonster(user) {
-    const stage = user.current_stage;
+    const stage = user.current_stage || 1;
     const progress = user.stage_progress || 0;
-    const requiredKills = stage; 
+    const stagesPerGroup = 5;
+    const groupIndex = Math.floor((stage - 1) / stagesPerGroup) % MONSTERS.length;
+    const monsterGroup = MONSTERS[groupIndex];
 
-    if (progress >= requiredKills) {
-        const groupIndex = Math.floor((stage - 1) / 5) % MONSTERS.length;
-        const bossTemplate = MONSTERS[groupIndex].boss;
+    // Boss Stage Logic
+    if (stage % 10 === 0) {
+        const bossTemplate = monsterGroup.boss;
         return scaleMonsterStats(bossTemplate, stage, 'Boss');
-    } else {
-        const stageMonsters = getStageMonsters(stage);
-        // stageMonsters 배열이 비어있는지 재차 확인
-        if (!stageMonsters || stageMonsters.length === 0) {
-             console.error("getCurrentMonster: stageMonsters is empty. Stage:", stage);
-             const fallbackMonster = { ...MONSTERS[0].goblin, grade: 'Normal' };
-             return scaleMonsterStats(fallbackMonster, 1, 'Normal');
-        }
-        const monsterTemplate = stageMonsters[progress % stageMonsters.length];
-        return scaleMonsterStats(monsterTemplate, stage, monsterTemplate.grade);
     }
+
+    // Normal/Elite Monster Logic
+    const requiredKills = 10; 
+    const isElite = progress > 0 && progress % (requiredKills / 2) === 0; // Every 5th monster is an Elite
+    const grade = isElite ? 'Elite' : 'Normal';
+    
+    const monsterTemplate = getRandomMonster(monsterGroup, 'Normal');
+
+    return scaleMonsterStats(monsterTemplate, stage, grade);
 }

@@ -1,18 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Idle RPG</title>
+    <title>방치형 RPG</title>
     <link rel="stylesheet" href="/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
         <!-- Login View -->
         <div id="login-view">
-            <h1>Idle RPG</h1>
-            <p>A minimalist idle role-playing game. Sign in to start your adventure.</p>
-            <a href="/api/login" class="login-button">Sign in with Google</a>
+            <div class="login-box">
+                <h1>방치형 RPG</h1>
+                <p>로그인하고 나만의 모험을 시작하세요.</p>
+                <a href="/api/login" class="login-button">Google 계정으로 로그인</a>
+            </div>
         </div>
 
         <!-- Game View -->
@@ -23,26 +28,27 @@
             </header>
 
             <main id="main-content">
-                <!-- Left Column: Battle Screen -->
+                <!-- Left Column: Character Info -->
+                <section id="character-panel" class="game-panel">
+                    <!-- Player stats will be rendered here by main.js -->
+                </section>
+
+                <!-- Center Column: Battle Screen -->
                 <section id="battle-screen" class="game-panel">
-                    <div id="stage-info">
-                        <h2 id="stage-level"></h2>
-                        <div class="progress-bar">
-                            <div id="stage-progress"></div>
-                        </div>
+                    <div id="monster-panel">
+                        <!-- Monster info will be rendered here by main.js -->
                     </div>
-                    <div id="monster-area">
-                        <h3 id="monster-name"></h3>
-                        <div id="monster-hp-bar" class="progress-bar">
-                            <div id="monster-hp"></div>
-                        </div>
+                    <div id="battle-visuals">
+                        <!-- Attack effects can be added here -->
                     </div>
                 </section>
 
-                <!-- Right Column: Character & Actions -->
-                <section id="character-panel" class="game-panel">
-                    <div id="character-stats"></div>
-                </section>
+                <!-- Right Column: Actions & Upgrades -->
+                <aside id="actions-panel" class="game-panel">
+                    <div id="upgrade-container">
+                        <!-- Upgrade UI will be rendered here by main.js -->
+                    </div>
+                </aside>
             </main>
         </div>
     </div>

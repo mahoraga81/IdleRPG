@@ -20,48 +20,27 @@ export async function onRequestPost(context) {
         let user = await DB.prepare('SELECT * FROM users WHERE id = ?').bind(session.user_id).first();
         if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404 });
 
-        const defeatedMonster = getCurrentMonster(user); // The monster they just fought
-        const goldEarned = defeatedMonster.gold;
+        // Apply defeat penalties
+        user.current_stage = Math.max(1, user.current_stage - 1); // Decrease stage, minimum 1
+        user.stage_progress = 0; // Reset stage progress
+        user.gold = Math.floor(user.gold * 0.9); // Lose 10% of gold
 
-        let stageCleared = false;
-        user.gold += goldEarned;
-        user.stage_progress += 1;
+        // Update user data in the database
+        await DB.prepare('UPDATE users SET current_stage = ?, stage_progress = ?, gold = ? WHERE id = ?')
+            .bind(user.current_stage, user.stage_progress, user.gold, user.id).run();
 
-        const KILLS_PER_STAGE = 10;
-
-        // Check for stage clear conditions
-        if (user.current_stage % 10 === 0 && defeatedMonster.grade === 'Boss') {
-            // Cleared a boss stage
-            user.current_stage += 1;
-            user.stage_progress = 0;
-            stageCleared = true;
-        } else if (user.current_stage % 10 !== 0 && user.stage_progress >= KILLS_PER_STAGE) {
-            // Cleared a normal stage
-            user.current_stage += 1;
-            user.stage_progress = 0;
-            stageCleared = true;
-        }
-
-        // Update user data in DB
-        await DB.prepare('UPDATE users SET gold = ?, current_stage = ?, stage_progress = ? WHERE id = ?')
-            .bind(user.gold, user.current_stage, user.stage_progress, user.id).run();
-        
-        // Get the next monster based on the potentially updated user state
+        // Get the new monster for the reset stage
         const nextMonster = getCurrentMonster(user);
-
-        // We don't need to re-fetch the user, just strip the google_id for the response
         const { google_id, ...characterData } = user;
 
-        return new Response(JSON.stringify({ 
-            message: "Victory!", 
-            gold_earned: goldEarned,
-            stage_cleared: stageCleared,
+        return new Response(JSON.stringify({
+            message: "You have been defeated!",
             character: characterData,
             nextMonster: nextMonster
         }), { headers: { 'Content-Type': 'application/json' } });
 
     } catch (error) {
-        console.error('Battle API error:', error);
+        console.error('Defeat API error:', error);
         return new Response(JSON.stringify({ error: "An internal server error occurred.", details: error.message }), { status: 500 });
     }
 }

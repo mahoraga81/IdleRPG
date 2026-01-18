@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Idle RPG - The Battle Begins</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="left-panel">
+            <h2>Player Info</h2>
+            <div id="player-vitals">
+                <p>HP: <span id="player-hp">100</span> / <span id="player-max-hp">100</span></p>
+                <div class="hp-bar-container">
+                    <div id="player-hp-bar" class="hp-bar"></div>
+                </div>
+            </div>
+            <div id="player-stats">
+                <p>Loading stats...</p>
+            </div>
+        </div>
+        <div class="main-panel">
+            <h2>Stage <span id="stage-level">1</span></h2>
+            <div id="battle-arena">
+                <div id="monster-area">
+                    <h3 id="monster-name">Monster</h3>
+                    <p>HP: <span id="monster-hp">100</span> / <span id="monster-max-hp">100</span></p>
+                     <div class="hp-bar-container">
+                        <div id="monster-hp-bar" class="hp-bar"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="game-log">
+                <p>Welcome to Idle RPG!</p>
+            </div>
+        </div>
+    </div>
+    <script src="main.js"></script>
+</body>
+</html>

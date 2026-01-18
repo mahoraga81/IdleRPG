@@ -1,0 +1,5 @@
+# Ignore sensitive environment variables
+functions/.dev.vars
+
+# Ignore node_modules
+functions/node_modules

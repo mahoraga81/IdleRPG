@@ -1,0 +1,14 @@
+{
+  "name": "idlerpg-functions",
+  "version": "1.0.0",
+  "description": "Backend functions for IdleRPG",
+  "main": "_worker.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "mongodb": "^6.5.0"
+  }
+}

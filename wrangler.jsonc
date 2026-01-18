@@ -2,34 +2,10 @@
   "name": "idlerpg",
   "compatibility_date": "2024-05-13",
   "compatibility_flags": [
-    "nodejs_compat",
-    "experimental_socket"
+    "nodejs_compat"
   ],
   "main": "./functions/_worker.js",
   "assets": {
     "directory": "./"
-  },
-  "esbuild": {
-    "alias": {
-      "__cloudflare_sockets__": "cf-mongodb-polyfills/sockets",
-      "net": "cf-mongodb-polyfills/net",
-      "tls": "cf-mongodb-polyfills/tls",
-      "dns": "cf-mongodb-polyfills/dns",
-      "crypto": "node:crypto",
-      "stream": "node:stream",
-      "process": "node:process",
-      "util": "node:util",
-      "zlib": "node:zlib",
-      "events": "node:events",
-      "url": "node:url",
-      "http": "node:http",
-      "https": "node:https",
-      "timers": "node:timers",
-      "timers/promises": "node:timers/promises",
-      "child_process": "./shim-empty.js",
-      "os": "./shim-empty.js",
-      "fs": "./shim-empty.js",
-      "fs/promises": "./shim-empty.js"
-    }
   }
 }

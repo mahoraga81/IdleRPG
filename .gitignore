@@ -1,5 +1,5 @@
-# Ignore sensitive environment variables
-functions/.dev.vars
+# Dependencies
+/node_modules
 
-# Ignore node_modules
-functions/node_modules
+# Local development variables
+.dev.vars

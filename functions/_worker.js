@@ -1,25 +1,42 @@
-import { MongoClient } from 'mongodb';
 
+// --- Constants ---
 const DB_NAME = "IdleRPG";
 const PLAYERS_COLLECTION = 'players';
 const TEST_PLAYER_ID = 'test_player_01';
 
-let client;
-
 /**
- * Gets the MongoDB database instance, initializing the client if necessary.
+ * A helper function to make requests to the MongoDB Atlas Data API.
  * @param {object} env - The environment object from the Worker.
- * @returns {Promise<Db>} - The MongoDB database object.
+ * @param {string} action - The Data API action to perform (e.g., 'findOne', 'insertOne').
+ * @param {object} payload - The payload for the Data API action.
+ * @returns {Promise<object>} - The JSON response from the Data API.
  */
-async function getDb(env) {
-  if (!client) {
-    if (!env.MONGODB_URI) {
-      throw new Error("MONGODB_URI environment variable is not configured.");
-    }
-    client = new MongoClient(env.MONGODB_URI);
-    await client.connect();
+async function dataAPIRequest(env, action, payload) {
+  // Check for required environment variables
+  if (!env.DATA_API_URL || !env.DATA_API_KEY) {
+    throw new Error("DATA_API_URL and DATA_API_KEY environment variables are not configured.");
   }
-  return client.db(DB_NAME);
+
+  const response = await fetch(`${env.DATA_API_URL}/action/${action}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'api-key': env.DATA_API_KEY,
+    },
+    body: JSON.stringify({
+      dataSource: 'Cluster0', // Typically 'Cluster0', check your Atlas settings
+      database: DB_NAME,
+      collection: PLAYERS_COLLECTION,
+      ...payload,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Data API request failed: ${response.status} ${response.statusText} - ${errorBody}`);
+  }
+
+  return response.json();
 }
 
 // --- API Handlers ---
@@ -28,14 +45,15 @@ const api = {
    * Gets the player data, creating it if it doesn't exist.
    */
   async getPlayer(env) {
-    const db = await getDb(env);
-    const players = db.collection(PLAYERS_COLLECTION);
-    let player = await players.findOne({ _id: TEST_PLAYER_ID });
+    let { document: player } = await dataAPIRequest(env, 'findOne', {
+      filter: { _id: TEST_PLAYER_ID },
+    });
 
     if (player) {
       return new Response(JSON.stringify(player), { headers: { 'Content-Type': 'application/json' } });
     }
 
+    // Player doesn't exist, create a new one
     const newPlayer = {
       _id: TEST_PLAYER_ID,
       createdAt: new Date().toISOString(),
@@ -45,7 +63,10 @@ const api = {
       stage: 1,
     };
 
-    await players.insertOne(newPlayer);
+    await dataAPIRequest(env, 'insertOne', {
+      document: newPlayer,
+    });
+
     return new Response(JSON.stringify(newPlayer), { headers: { 'Content-Type': 'application/json' } });
   },
 
@@ -58,9 +79,9 @@ const api = {
       return new Response('Stat name is required', { status: 400 });
     }
 
-    const db = await getDb(env);
-    const players = db.collection(PLAYERS_COLLECTION);
-    const player = await players.findOne({ _id: TEST_PLAYER_ID });
+    const { document: player } = await dataAPIRequest(env, 'findOne', {
+      filter: { _id: TEST_PLAYER_ID },
+    });
 
     if (!player) {
       return new Response('Player not found', { status: 404 });
@@ -75,21 +96,22 @@ const api = {
       return new Response(JSON.stringify({ message: 'Not enough gold' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
-    const result = await players.updateOne(
-      { _id: TEST_PLAYER_ID },
-      {
+    // Perform the upgrade
+    await dataAPIRequest(env, 'updateOne', {
+      filter: { _id: TEST_PLAYER_ID },
+      update: {
         $inc: {
           [`stats.${statName}`]: 1,
-          gold: -cost
-        }
-      }
-    );
-
-    if (result.modifiedCount !== 1) {
-      return new Response('Failed to upgrade stat', { status: 500 });
-    }
+          gold: -cost,
+        },
+      },
+    });
     
-    const updatedPlayer = await players.findOne({ _id: TEST_PLAYER_ID });
+    // Fetch the updated player to return the new state
+    const { document: updatedPlayer } = await dataAPIRequest(env, 'findOne', {
+        filter: { _id: TEST_PLAYER_ID }
+    });
+
     return new Response(JSON.stringify(updatedPlayer), { headers: { 'Content-Type': 'application/json' } });
   }
 };
@@ -109,10 +131,12 @@ export default {
         return new Response('Unknown API action', { status: 404 });
       }
 
+      // For any other request, serve static assets
       return env.ASSETS.fetch(request);
 
     } catch (e) {
       console.error(e);
+      // Ensure a proper Response object is returned on error
       return new Response(e.message, { status: 500 });
     }
   }

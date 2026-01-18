@@ -14,21 +14,44 @@
     </div>
 
     <div id="game-container" style="display: none;">
-        <div id="player-stats-container">
-            <h2>Player Stats</h2>
-            <div class="stat-row"><span>HP:</span> <span id="player-hp"></span> <button class="upgrade-button" data-stat="stats_maxHp">Upgrade</button></div>
-            <div class="stat-row"><span>Attack:</span> <span id="player-attack"></span> <button class="upgrade-button" data-stat="stats_attack">Upgrade</button></div>
-            <div class="stat-row"><span>Defense:</span> <span id="player-defense"></span> <button class="upgrade-button" data-stat="stats_defense">Upgrade</button></div>
-            <div class="stat-row"><span>Crit Rate:</span> <span id="player-crit-rate"></span>% <button class="upgrade-button" data-stat="stats_critRate">Upgrade</button></div>
-            <div class="stat-row"><span>Crit Damage:</span> <span id="player-crit-damage"></span>% <button class="upgrade-button" data-stat="stats_critDamage">Upgrade</button></div>
-            <div class="stat-row"><span>Attack Speed:</span> <span id="player-attack-speed"></span> <button class="upgrade-button" data-stat="stats_attackSpeed">Upgrade</button></div>
-            <div class="stat-row"><span>Evasion:</span> <span id="player-evasion"></span>% <button class="upgrade-button" data-stat="stats_evasion">Upgrade</button></div>
+        <!-- Player Info (Filled by JS) -->
+
+        <!-- Battle Scene -->
+        <div id="battle-container">
+            <div id="stage-info">
+                <h2>Stage <span id="stage-level">1</span></h2>
+                <div class="progress-bar-container">
+                    <div id="stage-progress" class="progress-bar"></div>
+                </div>
+                <p><span id="monster-slain-count">0</span> / <span id="monsters-per-stage">10</span></p>
+            </div>
+            <div id="monster-info">
+                <h3>Monster: <span id="monster-name">Goblin</span></h3>
+                <div class="progress-bar-container">
+                    <div id="monster-hp-bar" class="progress-bar hp-bar"></div>
+                </div>
+                <p>HP: <span id="monster-hp-text">100 / 100</span></p>
+            </div>
         </div>
 
-        <div id="game-info-container">
-            <h2>Game Info</h2>
-            <div>Gold: <span id="player-gold"></span></div>
-            <div>Current Stage: <span id="player-stage"></span></div>
+        <!-- Game & Player Stats -->
+        <div id="stats-and-info-grid">
+            <div id="game-info-container">
+                <h3>Game Info</h3>
+                <div>Gold: <span id="player-gold">0</span></div>
+                <div>DPS: <span id="player-dps">0</span></div>
+            </div>
+
+            <div id="player-stats-container">
+                <h3>Player Stats</h3>
+                <div class="stat-row"><span>HP:</span> <span id="player-hp"></span> <button class="upgrade-button" data-stat="stats_maxHp">Upgrade</button></div>
+                <div class="stat-row"><span>Attack:</span> <span id="player-attack"></span> <button class="upgrade-button" data-stat="stats_attack">Upgrade</button></div>
+                <div class="stat-row"><span>Defense:</span> <span id="player-defense"></span> <button class="upgrade-button" data-stat="stats_defense">Upgrade</button></div>
+                <div class="stat-row"><span>Crit Rate:</span> <span id="player-crit-rate"></span>% <button class="upgrade-button" data-stat="stats_critRate">Upgrade</button></div>
+                <div class="stat-row"><span>Crit Damage:</span> <span id="player-crit-damage"></span>% <button class="upgrade-button" data-stat="stats_critDamage">Upgrade</button></div>
+                <div class="stat-row"><span>Attack Speed:</span> <span id="player-attack-speed"></span> <button class="upgrade-button" data-stat="stats_attackSpeed">Upgrade</button></div>
+                <div class="stat-row"><span>Evasion:</span> <span id="player-evasion"></span>% <button class="upgrade-button" data-stat="stats_evasion">Upgrade</button></div>
+            </div>
         </div>
 
         <button id="logout-button" class="logout-button">Logout</button>

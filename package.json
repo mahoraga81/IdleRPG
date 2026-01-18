@@ -2,5 +2,12 @@
   "name": "idlerpg",
   "version": "1.0.0",
   "private": true,
-  "scripts": {}
+  "scripts": {
+    "dev": "npx wrangler pages dev --proxy 3000 --compatibility-date=2024-03-20 --local --persist --d1 DB --var JWT_SECRET=a_secure_secret --var GOOGLE_CLIENT_ID=your_id --var GOOGLE_CLIENT_SECRET=your_secret --var REDIRECT_URL=http://localhost:8788/api/auth/google/callback"
+  },
+  "dependencies": {
+    "itty-router": "^4.0.23",
+    "jose": "^5.2.4",
+    "nanoid": "^5.0.6"
+  }
 }

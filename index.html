@@ -3,39 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Idle RPG - The Battle Begins</title>
+    <title>Idle RPG</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <div class="left-panel">
-            <h2>Player Info</h2>
-            <div id="player-vitals">
-                <p>HP: <span id="player-hp">100</span> / <span id="player-max-hp">100</span></p>
-                <div class="hp-bar-container">
-                    <div id="player-hp-bar" class="hp-bar"></div>
-                </div>
-            </div>
-            <div id="player-stats">
-                <p>Loading stats...</p>
-            </div>
-        </div>
-        <div class="main-panel">
-            <h2>Stage <span id="stage-level">1</span></h2>
-            <div id="battle-arena">
-                <div id="monster-area">
-                    <h3 id="monster-name">Monster</h3>
-                    <p>HP: <span id="monster-hp">100</span> / <span id="monster-max-hp">100</span></p>
-                     <div class="hp-bar-container">
-                        <div id="monster-hp-bar" class="hp-bar"></div>
-                    </div>
-                </div>
-            </div>
-            <div id="game-log">
-                <p>Welcome to Idle RPG!</p>
-            </div>
-        </div>
+    <div id="auth-container">
+        <h1>Welcome to Idle RPG</h1>
+        <p>Please log in to start your adventure.</p>
+        <a href="/api/auth/google/login" class="login-button">Login with Google</a>
     </div>
+
+    <div id="game-container" style="display: none;">
+        <div id="player-stats-container">
+            <h2>Player Stats</h2>
+            <div class="stat-row"><span>HP:</span> <span id="player-hp"></span> <button class="upgrade-button" data-stat="stats_maxHp">Upgrade</button></div>
+            <div class="stat-row"><span>Attack:</span> <span id="player-attack"></span> <button class="upgrade-button" data-stat="stats_attack">Upgrade</button></div>
+            <div class="stat-row"><span>Defense:</span> <span id="player-defense"></span> <button class="upgrade-button" data-stat="stats_defense">Upgrade</button></div>
+            <div class="stat-row"><span>Crit Rate:</span> <span id="player-crit-rate"></span>% <button class="upgrade-button" data-stat="stats_critRate">Upgrade</button></div>
+            <div class="stat-row"><span>Crit Damage:</span> <span id="player-crit-damage"></span>% <button class="upgrade-button" data-stat="stats_critDamage">Upgrade</button></div>
+            <div class="stat-row"><span>Attack Speed:</span> <span id="player-attack-speed"></span> <button class="upgrade-button" data-stat="stats_attackSpeed">Upgrade</button></div>
+            <div class="stat-row"><span>Evasion:</span> <span id="player-evasion"></span>% <button class="upgrade-button" data-stat="stats_evasion">Upgrade</button></div>
+        </div>
+
+        <div id="game-info-container">
+            <h2>Game Info</h2>
+            <div>Gold: <span id="player-gold"></span></div>
+            <div>Current Stage: <span id="player-stage"></span></div>
+        </div>
+
+        <button id="logout-button" class="logout-button">Logout</button>
+    </div>
+
     <script src="main.js"></script>
 </body>
 </html>

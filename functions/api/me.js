@@ -1,75 +1,75 @@
 async function ensureSchema(DB) {
     try {
-        // sqlite_master 테이블을 쿼리하여 'users' 테이블이 존재하는지 확인합니다.
+        let needsUpdate = false;
+        // 1. users 테이블의 존재 여부 확인
         const usersTable = await DB.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'").first();
         
-        if (usersTable) {
-            // 테이블이 이미 존재하면 아무 작업도 하지 않고 함수를 종료합니다.
-            return;
+        if (!usersTable) {
+            needsUpdate = true;
+        } else {
+            // 2. 테이블이 존재하면, 스키마가 최신인지 (예: 'dps' 컬럼이 있는지) 확인
+            const columns = await DB.prepare("PRAGMA table_info(users)").all();
+            const hasDpsColumn = columns.results.some(col => col.name === 'dps');
+            if (!hasDpsColumn) {
+                needsUpdate = true;
+                 console.log("'dps' column not found. Schema requires update.");
+            }
         }
 
-        console.log("Database schema not found. Initializing...");
+        // 3. 스키마가 구식이거나 존재하지 않으면, 전체를 다시 빌드
+        if (needsUpdate) {
+            console.log("Database schema is outdated or missing. Re-initializing...");
 
-        // 테이블이 없으면, users와 sessions 테이블을 생성하는 배치 작업을 실행합니다.
-        const batch = [
-            // 만약을 위해 기존 테이블을 삭제하는 구문을 포함합니다. (오류 방지)
-            DB.prepare("DROP TABLE IF EXISTS sessions"),
-            DB.prepare("DROP TABLE IF EXISTS users"),
-            DB.prepare(`
-                CREATE TABLE users (
-                    id TEXT PRIMARY KEY,
-                    email TEXT NOT NULL,
-                    name TEXT NOT NULL,
-                    picture TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    level INTEGER NOT NULL DEFAULT 1,
-                    gold INTEGER NOT NULL DEFAULT 10,
-                    str INTEGER NOT NULL DEFAULT 1,
-                    dex INTEGER NOT NULL DEFAULT 1,
-                    hp INTEGER NOT NULL DEFAULT 50,
-                    ap INTEGER NOT NULL DEFAULT 5,
-                    def INTEGER NOT NULL DEFAULT 0,
-                    crit_rate REAL NOT NULL DEFAULT 0.05,
-                    crit_damage REAL NOT NULL DEFAULT 1.5,
-                    attack_speed REAL NOT NULL DEFAULT 1.0,
-                    evasion_rate REAL NOT NULL DEFAULT 0.0,
-                    dps REAL NOT NULL DEFAULT 5.0
-                );
-            `),
-            DB.prepare(`
-                CREATE TABLE sessions (
-                    id TEXT PRIMARY KEY,
-                    user_id TEXT NOT NULL,
-                    expires_at TEXT NOT NULL,
-                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-                );
-            `)
-        ];
-        
-        await DB.batch(batch);
-        console.log("Database schema initialized successfully.");
-
+            const batch = [
+                DB.prepare("DROP TABLE IF EXISTS sessions"),
+                DB.prepare("DROP TABLE IF EXISTS users"),
+                DB.prepare(`
+                    CREATE TABLE users (
+                        id TEXT PRIMARY KEY,
+                        email TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        picture TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        level INTEGER NOT NULL DEFAULT 1,
+                        gold INTEGER NOT NULL DEFAULT 10,
+                        str INTEGER NOT NULL DEFAULT 1,
+                        dex INTEGER NOT NULL DEFAULT 1,
+                        hp INTEGER NOT NULL DEFAULT 50,
+                        ap INTEGER NOT NULL DEFAULT 5,
+                        def INTEGER NOT NULL DEFAULT 0,
+                        crit_rate REAL NOT NULL DEFAULT 0.05,
+                        crit_damage REAL NOT NULL DEFAULT 1.5,
+                        attack_speed REAL NOT NULL DEFAULT 1.0,
+                        evasion_rate REAL NOT NULL DEFAULT 0.0,
+                        dps REAL NOT NULL DEFAULT 5.0
+                    );
+                `),
+                DB.prepare(`
+                    CREATE TABLE sessions (
+                        id TEXT PRIMARY KEY,
+                        user_id TEXT NOT NULL,
+                        expires_at TEXT NOT NULL,
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                    );
+                `)
+            ];
+            
+            await DB.batch(batch);
+            console.log("Database schema initialized successfully.");
+        }
     } catch (error) {
         console.error("Failed to initialize database schema:", error);
-        // 오류 발생 시, 더 상위의 호출자에게 에러를 전파하여 처리하도록 합니다.
         throw new Error(`Database setup failed: ${error.message}`);
     }
 }
 
 function getCookie(request, name) {
-    let result = null;
-    const cookieString = request.headers.get('Cookie');
-    if (cookieString) {
-        const cookies = cookieString.split(';');
-        cookies.forEach(cookie => {
-            const parts = cookie.split('=');
-            const key = parts.shift().trim();
-            if (key === name) {
-                result = decodeURI(parts.join('='));
-            }
-        });
+    const cookieString = request.headers.get('Cookie') || '';
+    const cookie = cookieString.split(';').find(c => c.trim().startsWith(name + '='));
+    if (cookie) {
+        return decodeURI(cookie.split('=')[1]);
     }
-    return result;
+    return null;
 }
 
 export async function onRequestGet(context) {
@@ -77,7 +77,6 @@ export async function onRequestGet(context) {
     const { DB } = env;
 
     try {
-        // **CRITICAL FIX**: API 요청 처리 전에 데이터베이스 스키마 존재를 보장합니다.
         await ensureSchema(DB);
 
         const sessionId = getCookie(request, 'session_id');
@@ -97,13 +96,13 @@ export async function onRequestGet(context) {
 
         const dbUser = await DB.prepare('SELECT * FROM users WHERE id = ?').bind(session.user_id).first();
         if (!dbUser) {
-            // This case might happen if a user is deleted but the session remains.
             return new Response(JSON.stringify({ error: "User not found" }), { status: 404 });
         }
-
+        
+        // 모든 사용자 데이터를 character 객체에 포함하여 반환
         const responsePayload = {
             user: { id: dbUser.id, email: dbUser.email, name: dbUser.name, picture: dbUser.picture },
-            character: { ...dbUser } // 모든 스탯을 포함하여 character 객체를 채웁니다.
+            character: { ...dbUser }
         };
 
         return new Response(JSON.stringify(responsePayload), { headers: { 'Content-Type': 'application/json' } });

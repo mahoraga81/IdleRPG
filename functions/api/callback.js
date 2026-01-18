@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from 'uuid';
 
 // This function is the callback handler for Google OAuth
 export async function onRequestGet(context) {
@@ -38,7 +37,7 @@ export async function onRequestGet(context) {
         });
         const userData = await userResponse.json();
 
-        // 3. **CRITICAL FIX & EXPANSION**: Atomically create or update user with ALL stats
+        // 3. Atomically create or update user with ALL stats
         const userId = userData.id;
         const userEmail = userData.email;
         const userName = userData.name;
@@ -55,8 +54,8 @@ export async function onRequestGet(context) {
 
         await env.DB.prepare(upsertQuery).bind(userId, userEmail, userName, userPicture).run();
         
-        // 4. Create a session for the user
-        const sessionId = uuidv4();
+        // 4. **FIX**: Create a session for the user using the built-in crypto module
+        const sessionId = crypto.randomUUID();
         const sessionExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
         
         await env.DB.prepare(

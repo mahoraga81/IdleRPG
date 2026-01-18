@@ -2,6 +2,9 @@
   "name": "idlerpg",
   "version": "1.0.0",
   "private": true,
+  "scripts": {
+    "build": "echo \"Running build to trigger npm install...\""
+  },
   "dependencies": {
     "itty-router": "^4.0.23",
     "jose": "^5.2.4",

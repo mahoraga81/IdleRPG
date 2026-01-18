@@ -16,18 +16,6 @@ function getCookie(request, name) {
     return result;
 }
 
-async function safeQuery(db, query, params = []) {
-    try {
-        const stmt = db.prepare(query).bind(...params);
-        // D1 now returns results in a `results` property
-        const { results } = await stmt.all();
-        return { success: true, data: results };
-    } catch (e) {
-        console.error("Database Error:", e, e.cause);
-        return { success: false, error: e.message };
-    }
-}
-
 export async function onRequestGet(context) {
     const { request, env } = context;
     const { DB } = env;
@@ -35,43 +23,34 @@ export async function onRequestGet(context) {
     const sessionId = getCookie(request, 'session_id');
 
     if (!sessionId) {
-        return new Response(JSON.stringify({ error: "Not authenticated" }), { 
-            status: 401, 
-            headers: { 'Content-Type': 'application/json' } 
-        });
+        return new Response(JSON.stringify({ error: "Not authenticated" }), { status: 401, headers: { 'Content-Type': 'application/json' } });
     }
 
-    const sessionResult = await safeQuery(DB, "SELECT user_id, expires_at FROM sessions WHERE id = ?", [sessionId]);
+    // Using a JOIN to fetch session and user data in one go could be more efficient,
+    // but for clarity, we'll keep it as two separate queries for now.
 
-    if (!sessionResult.success || sessionResult.data.length === 0) {
-        return new Response(JSON.stringify({ error: "Invalid session" }), { 
-            status: 401, 
-            headers: { 'Content-Type': 'application/json' } 
-        });
+    const sessionQuery = 'SELECT user_id, expires_at FROM sessions WHERE id = ?';
+    const sessionStmt = DB.prepare(sessionQuery).bind(sessionId);
+    const session = await sessionStmt.first();
+
+    if (!session) {
+        return new Response(JSON.stringify({ error: "Invalid session" }), { status: 401, headers: { 'Content-Type': 'application/json' } });
     }
-
-    const session = sessionResult.data[0];
 
     if (new Date(session.expires_at) < new Date()) {
-        await safeQuery(DB, "DELETE FROM sessions WHERE id = ?", [sessionId]);
-        return new Response(JSON.stringify({ error: "Session expired" }), { 
-            status: 401, 
-            headers: { 'Content-Type': 'application/json' } 
-        });
+        await DB.prepare('DELETE FROM sessions WHERE id = ?').bind(sessionId).run();
+        return new Response(JSON.stringify({ error: "Session expired" }), { status: 401, headers: { 'Content-Type': 'application/json' } });
     }
 
-    const userResult = await safeQuery(DB, "SELECT * FROM users WHERE id = ?", [session.user_id]);
+    const userQuery = 'SELECT * FROM users WHERE id = ?';
+    const userStmt = DB.prepare(userQuery).bind(session.user_id);
+    const dbUser = await userStmt.first();
 
-    if (!userResult.success || userResult.data.length === 0) {
-        return new Response(JSON.stringify({ error: "User not found" }), { 
-            status: 404, 
-            headers: { 'Content-Type': 'application/json' } 
-        });
+    if (!dbUser) {
+        return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: { 'Content-Type': 'application/json' } });
     }
 
-    const dbUser = userResult.data[0];
-
-    // **FIX:** Structure the data as the frontend expects it.
+    // Structure the data as the frontend expects it
     const responsePayload = {
         user: {
             id: dbUser.id,
@@ -83,8 +62,15 @@ export async function onRequestGet(context) {
             level: dbUser.level,
             gold: dbUser.gold,
             str: dbUser.str,
-            dex: dbUser.dex
-            // Add any other character-specific fields here in the future
+            dex: dbUser.dex,
+            hp: dbUser.hp, // 체력
+            ap: dbUser.ap,   // 공격력
+            def: dbUser.def, // 방어력
+            crit_rate: dbUser.crit_rate, // 치명타 확률
+            crit_damage: dbUser.crit_damage, // 치명타 피해량
+            attack_speed: dbUser.attack_speed, // 공격 속도
+            evasion_rate: dbUser.evasion_rate, // 회피 확률
+            dps: dbUser.dps // 초당 데미지 (DPS)
         }
     };
     

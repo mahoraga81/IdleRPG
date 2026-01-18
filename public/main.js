@@ -4,54 +4,59 @@ document.addEventListener('DOMContentLoaded', async () => {
     const userInfoDiv = document.getElementById('user-info');
     const characterStatsDiv = document.getElementById('character-stats');
 
-    // 로그인 상태를 확인하고 UI를 업데이트하는 함수
     async function checkLoginStatus() {
         try {
             const response = await fetch('/api/me');
-            
             if (response.ok) {
-                // 로그인 성공
                 const userData = await response.json();
                 showGameView(userData);
             } else {
-                // 로그인 실패 또는 세션 만료
                 showLoginView();
             }
         } catch (error) {
             console.error('Error checking login status:', error);
-            showLoginView(); // 에러 발생 시 로그인 화면 표시
+            showLoginView();
         }
     }
 
-    // 로그인 뷰를 표시하는 함수
     function showLoginView() {
         loginView.classList.remove('hidden');
         gameView.classList.add('hidden');
     }
 
-    // 게임 뷰를 표시하고 사용자 데이터를 렌더링하는 함수
     function showGameView(userData) {
         loginView.classList.add('hidden');
         gameView.classList.remove('hidden');
 
-        // 사용자 정보 표시 (프로필 사진, 이름)
+        const { user, character } = userData;
+
         userInfoDiv.innerHTML = `
-            <img src="${userData.user.picture}" alt="${userData.user.name}'s profile picture">
+            <img src="${user.picture}" alt="${user.name}'s profile picture">
             <div>
-                <strong>${userData.user.name}</strong>
-                <small>${userData.user.email}</small>
+                <strong>${user.name}</strong>
+                <small>${user.email}</small>
             </div>
         `;
 
-        // 캐릭터 스탯 표시 (레벨, 골드 등)
+        // **FIX & EXPANSION**: Display all detailed character stats
         characterStatsDiv.innerHTML = `
-            <p><strong>Level:</strong> ${userData.character.level}</p>
-            <p><strong>Gold:</strong> ${userData.character.gold}</p>
-            <p><strong>STR:</strong> ${userData.character.str}</p>
-            <p><strong>DEX:</strong> ${userData.character.dex}</p>
+            <h3>Character Stats</h3>
+            <div class="stats-grid">
+                <span><strong>Level:</strong> ${character.level}</span>
+                <span><strong>Gold:</strong> ${character.gold}</span>
+                <span><strong>HP:</strong> ${character.hp}</span>
+                <span><strong>DPS:</strong> ${character.dps.toFixed(2)}</span>
+                <span><strong>Attack Power:</strong> ${character.ap}</span>
+                <span><strong>Attack Speed:</strong> ${character.attack_speed.toFixed(2)}/s</span>
+                <span><strong>Crit Rate:</strong> ${(character.crit_rate * 100).toFixed(1)}%</span>
+                <span><strong>Crit Damage:</strong> ${(character.crit_damage * 100).toFixed(0)}%</span>
+                <span><strong>Defense:</strong> ${character.def}</span>
+                <span><strong>Evasion:</strong> ${(character.evasion_rate * 100).toFixed(1)}%</span>
+                <span><strong>STR:</strong> ${character.str}</span>
+                <span><strong>DEX:</strong> ${character.dex}</span>
+            </div>
         `;
     }
 
-    // 페이지 로드 시 로그인 상태 확인 실행
     checkLoginStatus();
 });

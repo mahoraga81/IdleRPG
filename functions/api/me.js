@@ -19,10 +19,11 @@ function getCookie(request, name) {
 async function safeQuery(db, query, params = []) {
     try {
         const stmt = db.prepare(query).bind(...params);
-        const result = await stmt.all();
-        return { success: true, data: result };
+        // D1 now returns results in a `results` property
+        const { results } = await stmt.all();
+        return { success: true, data: results };
     } catch (e) {
-        console.error("Database Error:", e);
+        console.error("Database Error:", e, e.cause);
         return { success: false, error: e.message };
     }
 }
@@ -40,11 +41,9 @@ export async function onRequestGet(context) {
         });
     }
 
-    // Find the session in the database
-    const sessionResult = await safeQuery(DB, "SELECT * FROM sessions WHERE id = ?", [sessionId]);
+    const sessionResult = await safeQuery(DB, "SELECT user_id, expires_at FROM sessions WHERE id = ?", [sessionId]);
 
     if (!sessionResult.success || sessionResult.data.length === 0) {
-        // Session not found, could be invalid
         return new Response(JSON.stringify({ error: "Invalid session" }), { 
             status: 401, 
             headers: { 'Content-Type': 'application/json' } 
@@ -53,9 +52,7 @@ export async function onRequestGet(context) {
 
     const session = sessionResult.data[0];
 
-    // Check if the session has expired
     if (new Date(session.expires_at) < new Date()) {
-        // Clean up expired session from DB
         await safeQuery(DB, "DELETE FROM sessions WHERE id = ?", [sessionId]);
         return new Response(JSON.stringify({ error: "Session expired" }), { 
             status: 401, 
@@ -63,7 +60,6 @@ export async function onRequestGet(context) {
         });
     }
 
-    // Session is valid, fetch the user data
     const userResult = await safeQuery(DB, "SELECT * FROM users WHERE id = ?", [session.user_id]);
 
     if (!userResult.success || userResult.data.length === 0) {
@@ -73,10 +69,26 @@ export async function onRequestGet(context) {
         });
     }
 
-    const user = userResult.data[0];
+    const dbUser = userResult.data[0];
+
+    // **FIX:** Structure the data as the frontend expects it.
+    const responsePayload = {
+        user: {
+            id: dbUser.id,
+            email: dbUser.email,
+            name: dbUser.name,
+            picture: dbUser.picture
+        },
+        character: {
+            level: dbUser.level,
+            gold: dbUser.gold,
+            str: dbUser.str,
+            dex: dbUser.dex
+            // Add any other character-specific fields here in the future
+        }
+    };
     
-    // Return all user data (including stats)
-    return new Response(JSON.stringify(user), {
+    return new Response(JSON.stringify(responsePayload), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
     });

@@ -1,5 +1,14 @@
 
-import { nanoid } from 'nanoid';
+// Helper function to generate a secure random session ID using the Web Crypto API
+const generateSessionId = () => {
+    const array = new Uint8Array(24); // 24 bytes -> 32 chars in Base64URL
+    crypto.getRandomValues(array);
+    // Convert to a URL-safe Base64 string
+    return btoa(String.fromCharCode.apply(null, array))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+};
 
 // Helper function to handle database queries
 async function safeQuery(db, query, params = []) {
@@ -12,7 +21,6 @@ async function safeQuery(db, query, params = []) {
         return { success: false, error: e.message };
     }
 }
-
 
 export async function onRequestGet(context) {
     const { request, env } = context;
@@ -57,10 +65,8 @@ export async function onRequestGet(context) {
         const findUserResult = await safeQuery(DB, "SELECT * FROM users WHERE id = ?", [googleUser.id]);
 
         if (findUserResult.success && findUserResult.data.length > 0) {
-            // User exists
             user = findUserResult.data[0];
         } else {
-            // New user, create one with default stats
             const newUser = {
                 id: googleUser.id,
                 email: googleUser.email,
@@ -76,7 +82,6 @@ export async function onRequestGet(context) {
             if (!createUserResult.success) {
                  throw new Error('Failed to create new user in database.');
             }
-            // The user is created with default values from the table schema
             const getNewUser = await safeQuery(DB, "SELECT * FROM users WHERE id = ?", [newUser.id]);
             if(getNewUser.success && getNewUser.data.length > 0) {
                  user = getNewUser.data[0];
@@ -86,8 +91,8 @@ export async function onRequestGet(context) {
         }
 
         // 4. Create a session
-        const sessionId = nanoid(32); // Generate a secure random session ID
-        const sessionExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+        const sessionId = generateSessionId(); // Use the new crypto-based generator
+        const sessionExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
         await safeQuery(
             DB,

@@ -58,6 +58,9 @@ authRouter.get('/google/login', (request, env) => {
   const { origin } = new URL(request.url);
   const redirectUri = `${origin}/api/auth/google/callback`;
 
+  // DEBUGGING: Log the redirect URI being used for the initial auth request
+  console.log('DEBUG: /google/login - Generated Redirect URI:', redirectUri);
+
   const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
   googleAuthUrl.searchParams.set('client_id', env.GOOGLE_CLIENT_ID);
   googleAuthUrl.searchParams.set('redirect_uri', redirectUri);
@@ -73,27 +76,40 @@ authRouter.get('/google/callback', async (request, env) => {
   const code = searchParams.get('code');
   const redirectUri = `${origin}/api/auth/google/callback`;
 
+  // DEBUGGING: Log the redirect URI used in the token exchange
+  console.log('DEBUG: /google/callback - Using Redirect URI for token exchange:', redirectUri);
+
   if (!code) {
+    console.error('DEBUG: /google/callback - Authorization code is missing');
     return jsonResponse({ message: 'Authorization code is missing' }, 400);
   }
 
   try {
-    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    const tokenRequestBody = {
         code,
         client_id: env.GOOGLE_CLIENT_ID,
         client_secret: env.GOOGLE_CLIENT_SECRET,
         redirect_uri: redirectUri,
         grant_type: 'authorization_code',
-      }),
+    };
+
+    // DEBUGGING: Log the exact body being sent to Google
+    console.log('DEBUG: /google/callback - Sending to Google token endpoint:', JSON.stringify(tokenRequestBody, null, 2));
+
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(tokenRequestBody),
     });
 
     const tokenData = await tokenResponse.json();
+
+    // DEBUGGING: Log the full response from Google, successful or not
+    console.log('DEBUG: /google/callback - Received from Google token endpoint:', JSON.stringify(tokenData, null, 2));
+
     if (!tokenData.access_token) {
-        console.error("OAuth Error:", tokenData);
-        return jsonResponse({ message: 'Failed to retrieve access token from Google'}, 500);
+        console.error("OAuth Error: Failed to retrieve access token from Google.", tokenData);
+        return jsonResponse({ message: 'Failed to retrieve access token from Google', details: tokenData }, 500);
     }
 
     const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {

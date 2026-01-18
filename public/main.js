@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- UI Components ---
     const loginView = document.getElementById('login-view');
     const gameView = document.getElementById('game-view');
-    const battleScreen = document.getElementById('battle-screen'); // 전투 화면 참조 추가
+    const battleScreen = document.getElementById('battle-screen');
     const userInfoDiv = document.getElementById('user-info');
     const characterStatsDiv = document.getElementById('character-stats');
     const stageLevel = document.getElementById('stage-level');
@@ -30,8 +30,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function fetcher(url, options = {}) {
         const response = await fetch(url, options);
         if (!response.ok) {
-            const errorBody = await response.json().catch(() => ({ error: 'Request failed' }));
-            throw new Error(`HTTP error ${response.status}: ${errorBody.details || errorBody.error}`);
+            const errorBody = await response.json().catch(() => ({ error: 'Request failed with no JSON body' }));
+            const errorMessage = `HTTP ${response.status}: ${errorBody.details || errorBody.error || 'Unknown error'}`;
+            throw new Error(errorMessage);
         }
         return response.json();
     }
@@ -125,7 +126,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             updateAllUI();
         } catch (error) {
             console.error(`Failed to upgrade ${stat}:`, error);
-            alert(`스탯 강화 실패: ${error.message}`); // 사용자에게 오류 알림
+            alert(`스탯 강화 실패: ${error.message}`);
         }
     }
 
@@ -141,6 +142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             startBattleLoop();
         } catch (error) {
             console.error('Initialization failed:', error);
+            alert(`Failed to load game data. Returning to login screen.\n\n[Debug Info]\n${error.message}`);
             showLoginView();
         }
     }
@@ -157,7 +159,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         gameView.classList.remove('hidden');
         userInfoDiv.innerHTML = `<img src="${user.picture}" alt="${user.name}'s profile picture"><div><strong>${user.name}</strong><small>${user.email}</small></div>`;
         
-        // 전투 화면을 기본으로 활성화
         document.querySelector('.menu-button[data-view="battle-screen"]').classList.add('active');
         battleScreen.classList.add('active');
     }

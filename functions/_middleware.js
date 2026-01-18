@@ -78,8 +78,15 @@ const authMiddleware = async (request, env) => {
 const authRouter = Router({ base: '/api/auth' });
 
 authRouter.get('/google/login', (request, env) => {
-  const { origin } = new URL(request.url);
-  const redirectUri = `${origin}/api/auth/google/callback`;
+  // Use the exact redirect URL from the environment variable
+  const redirectUri = env.REDIRECT_URL;
+
+  if (!redirectUri) {
+      return htmlErrorResponse('Configuration Error', {
+          message: "The REDIRECT_URL environment variable is not set in the Cloudflare Worker.",
+          details: "Please ask the developer to configure this setting in the Cloudflare dashboard."
+      });
+  }
 
   const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
   googleAuthUrl.searchParams.set('client_id', env.GOOGLE_CLIENT_ID);
@@ -92,9 +99,17 @@ authRouter.get('/google/login', (request, env) => {
 });
 
 authRouter.get('/google/callback', async (request, env) => {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
-  const redirectUri = `${origin}/api/auth/google/callback`;
+  // Use the exact redirect URL from the environment variable
+  const redirectUri = env.REDIRECT_URL;
+
+  if (!redirectUri) {
+      return htmlErrorResponse('Configuration Error', {
+          message: "The REDIRECT_URL environment variable is not set in the Cloudflare Worker.",
+          details: "This should not happen if the login step worked. Please contact support."
+      });
+  }
 
   if (!code) {
     return htmlErrorResponse('Authorization Code Missing', {
@@ -121,7 +136,6 @@ authRouter.get('/google/callback', async (request, env) => {
     const tokenData = await tokenResponse.json();
 
     if (!tokenResponse.ok) {
-        // If the response is not OK (e.g., 400, 401, 500), display the error details
         return htmlErrorResponse(
             'Failed to Retrieve Access Token',
             {

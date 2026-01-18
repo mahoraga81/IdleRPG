@@ -1,59 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IdleRPG</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <title>Idle RPG</title>
+    <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-    <!-- Triggering a new build to resolve deployment submission issue -->
-    <div id="app">
-        <div id="loading-screen" class="active">
-            <h1>IdleRPG</h1>
-            <div class="loader"></div>
-            <p>Loading...</p>
-        </div>
+    <h1>Idle RPG</h1>
 
-        <div id="login-screen" class="hidden">
-            <h1>Welcome to IdleRPG</h1>
-            <p>A minimalist idle game experience.</p>
-            <a href="/api/login" class="login-button">Login with Google</a>
-        </div>
+    <!-- 로그인 뷰 -->
+    <div id="login-view">
+        <p>게임에 접속하려면 Google 계정으로 로그인하세요.</p>
+        <a href="/api/login" class="login-button">Google로 로그인</a>
+    </div>
 
-        <div id="game-screen" class="hidden">
-            <div id="user-profile">
-                <img id="user-avatar" src="" alt="User Avatar">
-                <p id="user-name"></p>
-            </div>
-            <div id="game-content">
-                 <div id="character-info">
-                    <h2>Character</h2>
-                    <p>Level: <span id="char-level">1</span></p>
-                    <p>XP: <span id="char-xp">0</span> / <span id="xp-to-next-level">100</span></p>
-                     <div class="progress-bar-container">
-                        <div id="xp-bar" class="progress-bar"></div>
-                    </div>
-                </div>
-                <div id="monster-info">
-                    <h2>Monster</h2>
-                    <p>Name: <span id="monster-name">Slime</span></p>
-                    <p>HP: <span id="monster-hp">10</span> / <span id="monster-max-hp">10</span></p>
-                    <div class="progress-bar-container">
-                        <div id="hp-bar" class="progress-bar"></div>
-                    </div>
-                </div>
-                <button id="attack-button">Attack</button>
-                <div id="log-container">
-                    <h2>Log</h2>
-                    <div id="game-log"></div>
-                </div>
-            </div>
+    <!-- 게임 뷰 (초기에는 숨김) -->
+    <div id="game-view" class="hidden">
+        <div id="user-info"></div>
+        <div id="character-stats"></div>
+        <div id="game-content">
+            <p>게임 콘텐츠가 여기에 표시됩니다.</p>
         </div>
     </div>
-    <script src="main.js"></script>
+
+    <script src="/main.js"></script>
 </body>
 </html>

@@ -1,4 +1,7 @@
 
+// Helper function to introduce a delay
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 // Helper function to generate a secure random session ID using the Web Crypto API
 const generateSessionId = () => {
     const array = new Uint8Array(24); // 24 bytes -> 32 chars in Base64URL
@@ -84,8 +87,9 @@ export async function onRequestGet(context) {
                 // INSERT was successful
                 user = createUserResult.data[0];
             } else {
-                // INSERT failed, likely due to a race condition. Let's try to SELECT the user again.
-                console.log("INSERT failed, likely a race condition. Retrying SELECT.", createUserResult.error);
+                // INSERT failed, likely due to a race condition. Wait for replication and retry SELECT.
+                console.log("INSERT failed, likely a race condition. Waiting before retrying SELECT.", createUserResult.error);
+                await sleep(250); // Wait for 250ms for DB replication
                 const raceConditionSelectResult = await safeQuery(DB, "SELECT * FROM users WHERE id = ?", [googleUser.id]);
                 
                 if (raceConditionSelectResult.success && raceConditionSelectResult.data.length > 0) {

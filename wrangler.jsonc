@@ -4,6 +4,6 @@
   "compatibility_flags": ["nodejs_compat"],
   "main": "./functions/_worker.js",
   "assets": {
-    "directory": "./public"
+    "directory": "./"
   }
 }

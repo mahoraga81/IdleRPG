@@ -10,6 +10,29 @@ const jsonResponse = (data, status = 200, headers = {}) => new Response(JSON.str
     headers: { ...headers, 'Content-Type': 'application/json' },
 });
 
+// Helper to return a detailed HTML error page
+const htmlErrorResponse = (title, errorDetails) => {
+    const body = `
+        <body style="font-family: sans-serif; background-color: #1a1a1a; color: #f2f2f2; padding: 2em;">
+            <h1 style="color: #ff4d4d;">OAuth Error: ${title}</h1>
+            <p>There was a critical error during the Google login process.</p>
+            <h3 style="color: #ffb3b3;">Error Details:</h3>
+            <pre style="background-color: #333; padding: 1em; border-radius: 8px; white-space: pre-wrap; word-wrap: break-word;">${JSON.stringify(errorDetails, null, 2)}</pre>
+            <p><b>Next Steps:</b></p>
+            <ol>
+                <li>Please copy the complete content of the "Error Details" block above.</li>
+                <li>Paste this information in your communication with the AI assistant.</li>
+                <li>This information is crucial for diagnosing the problem.</li>
+            </ol>
+        </body>
+    `;
+    return new Response(body, {
+        status: 500,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    });
+};
+
+
 const JWT_COOKIE_NAME = 'jwt-token';
 
 // ========== AUTHENTICATION MIDDLEWARE ==========
@@ -58,9 +81,6 @@ authRouter.get('/google/login', (request, env) => {
   const { origin } = new URL(request.url);
   const redirectUri = `${origin}/api/auth/google/callback`;
 
-  // DEBUGGING: Log the redirect URI being used for the initial auth request
-  console.log('DEBUG: /google/login - Generated Redirect URI:', redirectUri);
-
   const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
   googleAuthUrl.searchParams.set('client_id', env.GOOGLE_CLIENT_ID);
   googleAuthUrl.searchParams.set('redirect_uri', redirectUri);
@@ -76,12 +96,11 @@ authRouter.get('/google/callback', async (request, env) => {
   const code = searchParams.get('code');
   const redirectUri = `${origin}/api/auth/google/callback`;
 
-  // DEBUGGING: Log the redirect URI used in the token exchange
-  console.log('DEBUG: /google/callback - Using Redirect URI for token exchange:', redirectUri);
-
   if (!code) {
-    console.error('DEBUG: /google/callback - Authorization code is missing');
-    return jsonResponse({ message: 'Authorization code is missing' }, 400);
+    return htmlErrorResponse('Authorization Code Missing', {
+        message: "Google did not return an authorization code.",
+        details: "This can happen if you deny the permission request on the Google consent screen."
+    });
   }
 
   try {
@@ -93,9 +112,6 @@ authRouter.get('/google/callback', async (request, env) => {
         grant_type: 'authorization_code',
     };
 
-    // DEBUGGING: Log the exact body being sent to Google
-    console.log('DEBUG: /google/callback - Sending to Google token endpoint:', JSON.stringify(tokenRequestBody, null, 2));
-
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -104,12 +120,17 @@ authRouter.get('/google/callback', async (request, env) => {
 
     const tokenData = await tokenResponse.json();
 
-    // DEBUGGING: Log the full response from Google, successful or not
-    console.log('DEBUG: /google/callback - Received from Google token endpoint:', JSON.stringify(tokenData, null, 2));
-
-    if (!tokenData.access_token) {
-        console.error("OAuth Error: Failed to retrieve access token from Google.", tokenData);
-        return jsonResponse({ message: 'Failed to retrieve access token from Google', details: tokenData }, 500);
+    if (!tokenResponse.ok) {
+        // If the response is not OK (e.g., 400, 401, 500), display the error details
+        return htmlErrorResponse(
+            'Failed to Retrieve Access Token',
+            {
+                reason: "Google's token endpoint returned an error.",
+                statusCode: tokenResponse.status,
+                errorResponse: tokenData,
+                originalRequest: tokenRequestBody
+            }
+        );
     }
 
     const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
@@ -144,8 +165,10 @@ authRouter.get('/google/callback', async (request, env) => {
     return new Response(null, { status: 302, headers });
 
   } catch (e) {
-    console.error('Callback Error:', e.stack);
-    return jsonResponse({ message: 'An error occurred during authentication', error: e.message }, 500);
+    return htmlErrorResponse('Unhandled Callback Error', {
+        message: e.message,
+        stack: e.stack,
+    });
   }
 });
 
@@ -159,7 +182,6 @@ authRouter.post('/logout', async (request, env) => {
       if (token) {
         try {
             const secret = new TextEncoder().encode(env.JWT_SECRET);
-            // We only need the payload, don't need to fail on expiration
             const { payload } = await jwtVerify(token, secret, { ignoreExpiration: true });
             userId = payload.sub;
         } catch(e) { /* Ignore invalid token */ }
@@ -199,14 +221,12 @@ playerRouter.post('/upgrade', async (request, env) => {
     return jsonResponse({ message: 'Invalid stat provided.' }, 400);
   }
 
-  // A transaction would be better, but for simplicity let's do checks first
   const player = await env.DB.prepare('SELECT gold, ?? as statLevel FROM players WHERE id = ?').bind(stat, userId).first();
 
   if (!player) {
     return jsonResponse({ message: 'Player not found' }, 404);
   }
   
-  // Column names can't be bound directly, so we check the prefix
   const currentLevel = player[stat];
   const cost = 10 * Math.pow(1.1, currentLevel);
 
@@ -226,14 +246,11 @@ playerRouter.post('/upgrade', async (request, env) => {
 });
 
 // ========== MAIN MIDDLEWARE HANDLER ==========
-// This is the entry point for all requests
 export const onRequest = async (context) => {
   const { request, next, env } = context;
   const url = new URL(request.url);
 
-  // If the request is for an API route, let the router handle it
   if (url.pathname.startsWith('/api/')) {
-    // Combine routers and handle the request
     return Router()
       .all('/api/auth/*', authRouter.handle)
       .all('/api/player/*', playerRouter.handle)
@@ -244,7 +261,5 @@ export const onRequest = async (context) => {
       });
   }
   
-  // Otherwise, it's a request for a static asset, so let Pages handle it.
   return next();
 };
-

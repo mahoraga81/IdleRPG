@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
     // --- State Management ---
     let gameState = {
+        user: null,
         character: null,
         monster: null,
         isBattleLocked: false,
@@ -10,7 +11,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- UI Components ---
     const loginView = document.getElementById('login-view');
     const gameView = document.getElementById('game-view');
-    const battleScreen = document.getElementById('battle-screen');
     const userInfoDiv = document.getElementById('user-info');
     const characterStatsDiv = document.getElementById('character-stats');
     const stageLevel = document.getElementById('stage-level');
@@ -30,53 +30,43 @@ document.addEventListener('DOMContentLoaded', async () => {
         const response = await fetch(url, options);
         if (!response.ok) {
             const errorBody = await response.json().catch(() => ({ error: 'Request failed' }));
-            throw new Error(`HTTP error ${response.status}: ${errorBody.error}`);
+            throw new Error(`HTTP error ${response.status}: ${errorBody.details || errorBody.error}`);
         }
         return response.json();
     }
 
     // --- UI Update Functions ---
     function updateAllUI() {
+        if (!gameState.character) return;
         updateCharacterUI(gameState.character);
         updateBattleUI(gameState.character, gameState.monster);
+        updateUpgradeButtons(gameState.character);
     }
-
+    
     function updateCharacterUI(character) {
-        if (!character) return;
-        
-        const statMapping = {
-            str: '힘',
-            dex: '민첩',
-            // 다른 스탯도 여기에 추가 가능
-        };
-
+        const statMapping = { str: '힘', dex: '민첩' };
         characterStatsDiv.innerHTML = `
             <h3>Character Stats</h3>
-            <div class="stat-item">
-                 <div class="stat-info"><span>골드</span></div>
-                 <span class="upgrade-cost">${Math.floor(character.gold)} G</span>
-            </div>
-             <div class="stat-item">
-                 <div class="stat-info"><span>DPS</span></div>
-                 <span class="upgrade-cost">${character.dps.toFixed(2)}</span>
-            </div>
+            <div class="stat-item"><span>골드</span><span class="upgrade-cost">${Math.floor(character.gold)} G</span></div>
+            <div class="stat-item"><span>DPS</span><span class="upgrade-cost">${character.dps.toFixed(2)}</span></div>
             <hr>
-            ${Object.keys(statMapping).map(stat => {
-                const level = character[stat];
-                const cost = getUpgradeCost(level);
-                const canAfford = character.gold >= cost;
-                return `
-                    <div class="stat-item">
-                        <div class="stat-info">
-                            <span>${statMapping[stat]}</span>
-                            <span class="stat-level">Lv. ${level}</span>
-                        </div>
-                        <span class="upgrade-cost">${cost} G</span>
-                        <button class="upgrade-button" data-stat="${stat}" ${!canAfford ? 'disabled' : ''}>+</button>
-                    </div>
-                `;
-            }).join('')}
+            ${Object.keys(statMapping).map(stat => `
+                <div class="stat-item">
+                    <div class="stat-info"><span>${statMapping[stat]}</span><span class="stat-level">Lv. ${character[stat]}</span></div>
+                    <span class="upgrade-cost">${getUpgradeCost(character[stat])} G</span>
+                    <button class="upgrade-button" data-stat="${stat}">+</button>
+                </div>
+            `).join('')}
         `;
+    }
+
+    function updateUpgradeButtons(character) {
+        const upgradeButtons = document.querySelectorAll('.upgrade-button');
+        upgradeButtons.forEach(button => {
+            const stat = button.dataset.stat;
+            const cost = getUpgradeCost(character[stat]);
+            button.disabled = character.gold < cost;
+        });
     }
 
     function updateBattleUI(character, monster) {
@@ -84,11 +74,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const requiredKills = character.current_stage;
         const currentKills = character.stage_progress || 0;
         stageLevel.textContent = `Stage ${character.current_stage} (${currentKills}/${requiredKills})`;
-        const stageProgressPercent = (currentKills / requiredKills) * 100;
-        stageProgress.style.width = `${stageProgressPercent}%`;
+        stageProgress.style.width = `${(currentKills / requiredKills) * 100}%`;
         monsterName.innerHTML = `${monster.name} <small style="color: ${monster.grade === 'Boss' ? '#e91e63' : '#ccc'}">[${monster.grade}]</small>`;
-        const hpPercent = Math.max(0, (monster.hp / monster.maxHp) * 100);
-        monsterHpBar.style.width = `${hpPercent}%`;
+        monsterHpBar.style.width = `${Math.max(0, (monster.hp / monster.maxHp) * 100)}%`;
     }
 
     // --- Battle Logic ---
@@ -98,7 +86,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function battleLoop() {
-        if (!gameState.character || !gameState.monster || gameState.isBattleLocked) return;
+        if (gameState.isBattleLocked || !gameState.monster) return;
         gameState.monster.hp -= gameState.character.dps / 10;
         if (gameState.monster.hp <= 0) {
             gameState.isBattleLocked = true;
@@ -114,18 +102,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const result = await fetcher('/api/battle', { method: 'POST' });
             gameState.character = result.character;
-            if (result.stage_cleared) {
-                const nextMonster = await fetcher('/api/monster');
-                gameState.monster = nextMonster;
-            } else {
-                gameState.monster.hp = gameState.monster.maxHp;
-            }
+            gameState.monster = result.nextMonster; // Always use the monster from the server
             updateAllUI();
-            gameState.isBattleLocked = false;
-            startBattleLoop();
         } catch (error) {
             console.error('Victory handling failed:', error);
-            setTimeout(handleVictory, 3000);
+        } finally {
+            gameState.isBattleLocked = false;
+            startBattleLoop();
         }
     }
 
@@ -137,22 +120,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ stat }),
             });
-            gameState.character = result.character; // Update character with new stats
-            updateAllUI(); // Refresh UI
+            gameState.character = result.character;
+            updateAllUI();
         } catch (error) {
             console.error(`Failed to upgrade ${stat}:`, error);
-            // Optionally: show a toast message to the user
         }
     }
 
     // --- Initialization ---
     async function initializeGame() {
         try {
-            const userData = await fetcher('/api/me');
-            gameState.character = userData.character;
-            const monsterData = await fetcher('/api/monster');
-            gameState.monster = monsterData;
-            showGameView(userData.user);
+            const initialData = await fetcher('/api/me');
+            gameState.user = initialData.user;
+            gameState.character = initialData.character;
+            gameState.monster = initialData.monster;
+            showGameView();
             updateAllUI();
             startBattleLoop();
         } catch (error) {
@@ -167,7 +149,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (battleInterval) clearInterval(battleInterval);
     }
 
-    function showGameView(user) {
+    function showGameView() {
+        const user = gameState.user;
         loginView.classList.add('hidden');
         gameView.classList.remove('hidden');
         userInfoDiv.innerHTML = `<img src="${user.picture}" alt="${user.name}'s profile picture"><div><strong>${user.name}</strong><small>${user.email}</small></div>`;
@@ -184,8 +167,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     characterStatsDiv.addEventListener('click', (e) => {
         if (e.target.classList.contains('upgrade-button')) {
-            const stat = e.target.dataset.stat;
-            handleUpgrade(stat);
+            handleUpgrade(e.target.dataset.stat);
         }
     });
 

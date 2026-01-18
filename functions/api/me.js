@@ -1,3 +1,5 @@
+import { getCurrentMonster } from '../game/monsters.js';
+
 async function runMigrations(DB) {
     try {
         const migrations = {
@@ -92,16 +94,19 @@ export async function onRequestGet(context) {
             const setClauses = Object.keys(statsToUpdate).map(key => `${key} = ?`).join(', ');
             const values = Object.values(statsToUpdate);
             await DB.prepare(`UPDATE users SET ${setClauses} WHERE id = ?`).bind(...values, dbUser.id).run();
-            // Re-fetch user data to ensure we return the corrected state
             dbUser = await DB.prepare('SELECT * FROM users WHERE id = ?').bind(session.user_id).first();
         }
         
         await DB.prepare('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?').bind(dbUser.id).run();
 
+        // Get current monster based on user's progress
+        const monster = getCurrentMonster(dbUser);
+
         const { google_id, ...characterData } = dbUser;
         const responsePayload = {
             user: { id: dbUser.id, email: dbUser.email, name: dbUser.name, picture: dbUser.picture },
-            character: characterData
+            character: characterData,
+            monster: monster // Include monster data in the response
         };
 
         return new Response(JSON.stringify(responsePayload), { headers: { 'Content-Type': 'application/json' } });

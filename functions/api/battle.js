@@ -1,69 +1,58 @@
-import { getMonsterForStage } from '../game/monsters.js';
-
-function getCookie(request, name) {
-    const cookieString = request.headers.get('Cookie') || '';
-    const cookie = cookieString.split(';').find(c => c.trim().startsWith(name + '='));
-    return cookie ? decodeURI(cookie.split('=')[1]) : null;
-}
+import { getCurrentMonster } from '../game/monsters.js';
 
 export async function onRequestPost(context) {
     const { request, env } = context;
     const { DB } = env;
 
+    const getCookie = (name) => {
+        const cookieString = request.headers.get('Cookie') || '';
+        const cookie = cookieString.split(';').find(c => c.trim().startsWith(name + '='));
+        return cookie ? decodeURI(cookie.split('=')[1]) : null;
+    };
+
     try {
-        // 1. 사용자 인증
-        const sessionId = getCookie(request, 'session_id');
+        const sessionId = getCookie('session_id');
         if (!sessionId) return new Response(JSON.stringify({ error: "Not authenticated" }), { status: 401 });
 
         const session = await DB.prepare('SELECT user_id FROM sessions WHERE id = ? AND expires_at > datetime("now")').bind(sessionId).first();
         if (!session) return new Response(JSON.stringify({ error: "Invalid or expired session" }), { status: 401 });
 
-        // 2. 현재 사용자 정보 조회 (stage_progress 포함)
-        const user = await DB.prepare('SELECT id, current_stage, stage_progress FROM users WHERE id = ?').bind(session.user_id).first();
+        let user = await DB.prepare('SELECT * FROM users WHERE id = ?').bind(session.user_id).first();
         if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404 });
 
-        const currentStage = user.current_stage || 1;
-        const currentProgress = user.stage_progress || 0;
-        const requiredKills = currentStage; // 목표 처치 수 = 현재 스테이지 레벨
+        const currentMonster = getCurrentMonster(user);
+        const goldEarned = currentMonster.gold;
 
-        // 3. 보상 계산
-        const monster = getMonsterForStage(currentStage);
-        const goldReward = monster.gold;
-
-        // 4. 스테이지 진행 로직 분기
         let stageCleared = false;
-        let newStage = currentStage;
-        let newProgress = currentProgress + 1;
-
-        if (newProgress >= requiredKills) {
-            // 스테이지 클리어!
+        user.gold += goldEarned;
+        
+        if (currentMonster.grade === 'Boss') {
+            user.current_stage += 1;
+            user.stage_progress = 0; // Reset progress for the new stage
             stageCleared = true;
-            newStage = currentStage + 1;
-            newProgress = 0;
-            await DB.prepare(
-                'UPDATE users SET gold = gold + ?, current_stage = ?, stage_progress = ? WHERE id = ?'
-            ).bind(goldReward, newStage, newProgress, user.id).run();
         } else {
-            // 스테이지 진행 중
-            await DB.prepare(
-                'UPDATE users SET gold = gold + ?, stage_progress = ? WHERE id = ?'
-            ).bind(goldReward, newProgress, user.id).run();
+            user.stage_progress += 1;
         }
 
-        // 5. 업데이트된 전체 캐릭터 정보 반환
-        const updatedCharacterRaw = await DB.prepare('SELECT * FROM users WHERE id = ?').bind(user.id).first();
-        const { google_id, ...characterData } = updatedCharacterRaw;
-        characterData.dps = characterData.ap * characterData.attack_speed * (1 + characterData.crit_rate * characterData.crit_damage);
+        await DB.prepare('UPDATE users SET gold = ?, current_stage = ?, stage_progress = ? WHERE id = ?')
+            .bind(user.gold, user.current_stage, user.stage_progress, user.id).run();
+        
+        // Fetch the updated user data to pass to getCurrentMonster
+        const updatedUser = await DB.prepare('SELECT * FROM users WHERE id = ?').bind(user.id).first();
+        const nextMonster = getCurrentMonster(updatedUser);
 
-        return new Response(JSON.stringify({
-            message: stageCleared ? `Stage ${currentStage} cleared!` : `Monster defeated.`,
-            gold_reward: goldReward,
+        const { google_id, ...characterData } = updatedUser;
+
+        return new Response(JSON.stringify({ 
+            message: "Victory!", 
+            gold_earned: goldEarned,
             stage_cleared: stageCleared,
-            character: characterData
+            character: characterData,
+            nextMonster: nextMonster
         }), { headers: { 'Content-Type': 'application/json' } });
 
     } catch (error) {
-        console.error("Error in /api/battle:", error);
-        return new Response(JSON.stringify({ error: "Internal server error", details: error.message }), { status: 500 });
+        console.error('Battle API error:', error);
+        return new Response(JSON.stringify({ error: "An internal server error occurred.", details: error.message }), { status: 500 });
     }
 }

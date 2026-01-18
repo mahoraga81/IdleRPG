@@ -1,0 +1,5 @@
+name = "idlerpg"
+pages_build_output_dir = "public"
+
+[build]
+command = "npm install"

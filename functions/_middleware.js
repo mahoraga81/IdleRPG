@@ -228,35 +228,39 @@ playerRouter.get('/', async (request, env) => {
 });
 
 playerRouter.post('/upgrade', async (request, env) => {
-  const { userId } = request;
-  const { stat } = await request.json();
+    const { userId } = request;
+    const { stat } = await request.json();
 
-  if (!stat || !stat.startsWith('stats_')) {
-    return jsonResponse({ message: 'Invalid stat provided.' }, 400);
-  }
+    // Basic security: ensure the stat name is a valid column name format
+    if (!stat || !/^[a-zA-Z_]+$/.test(stat) || !stat.startsWith('stats_')) {
+        return jsonResponse({ message: 'Invalid stat provided.' }, 400);
+    }
 
-  const player = await env.DB.prepare('SELECT gold, ?? as statLevel FROM players WHERE id = ?').bind(stat, userId).first();
+    // Use template literals for dynamic column names.
+    // This is safe because of the regex check above.
+    const player = await env.DB.prepare(`SELECT gold, ${stat} FROM players WHERE id = ?`).bind(userId).first();
 
-  if (!player) {
-    return jsonResponse({ message: 'Player not found' }, 404);
-  }
-  
-  const currentLevel = player[stat];
-  const cost = 10 * Math.pow(1.1, currentLevel);
+    if (!player) {
+        return jsonResponse({ message: 'Player not found' }, 404);
+    }
 
-  if (player.gold < cost) {
-    return jsonResponse({ message: 'Not enough gold' }, 400);
-  }
+    const currentLevel = player[stat]; // Access the stat dynamically
+    const cost = 10 * Math.pow(1.1, currentLevel);
 
-  const newGold = player.gold - cost;
-  const newLevel = currentLevel + 1;
+    if (player.gold < cost) {
+        return jsonResponse({ message: 'Not enough gold' }, 400);
+    }
 
-  await env.DB.prepare(
-    `UPDATE players SET gold = ?, ?? = ? WHERE id = ?`
-  ).bind(newGold, stat, newLevel, userId).run();
+    const newGold = player.gold - cost;
+    const newLevel = currentLevel + 1;
 
-  const updatedPlayer = await env.DB.prepare('SELECT * FROM players WHERE id = ?').bind(userId).first();
-  return jsonResponse(updatedPlayer);
+    // Use template literals for the UPDATE statement as well
+    await env.DB.prepare(
+        `UPDATE players SET gold = ?, ${stat} = ? WHERE id = ?`
+    ).bind(newGold, newLevel, userId).run();
+
+    const updatedPlayer = await env.DB.prepare('SELECT * FROM players WHERE id = ?').bind(userId).first();
+    return jsonResponse(updatedPlayer);
 });
 
 // ========== MAIN MIDDLEWARE HANDLER ==========

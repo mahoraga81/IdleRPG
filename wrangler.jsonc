@@ -1,9 +1,22 @@
 {
   "name": "idlerpg",
   "compatibility_date": "2024-05-13",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": ["nodejs_compat", "experimental_socket"],
   "main": "./functions/_worker.js",
   "assets": {
     "directory": "./"
+  },
+  "build": {
+    "esbuild": {
+      "alias": {
+        "__cloudflare_sockets__": "cf-mongodb-polyfills/sockets",
+        "net": "cf-mongodb-polyfills/net",
+        "tls": "cf-mongodb-polyfills/tls",
+        "dns": "cf-mongodb-polyfills/dns",
+        "crypto": "node:crypto",
+        "stream": "node:stream",
+        "process": "node:process"
+      }
+    }
   }
 }

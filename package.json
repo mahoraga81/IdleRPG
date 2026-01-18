@@ -5,5 +5,8 @@
   "scripts": {
     "deploy": "wrangler pages deploy ."
   },
-  "dependencies": {}
+  "dependencies": {
+    "mongodb": "^6.6.2",
+    "cf-mongodb-polyfills": "github:jchoi2x/cf-mongodb-polyfills"
+  }
 }

@@ -1,40 +1,25 @@
-// --- Constants ---
+import { MongoClient } from 'mongodb';
+
 const DB_NAME = "IdleRPG";
 const PLAYERS_COLLECTION = 'players';
 const TEST_PLAYER_ID = 'test_player_01';
-const DATA_SOURCE = 'Cluster0'; // Default Atlas Data Source name
+
+let client;
 
 /**
- * A helper function to interact with the MongoDB Atlas Data API.
+ * Gets the MongoDB database instance, initializing the client if necessary.
  * @param {object} env - The environment object from the Worker.
- * @param {string} action - The Data API action (e.g., 'findOne', 'insertOne', 'updateOne').
- * @param {object} params - The parameters for the action.
- * @returns {Promise<any>} - The result from the Data API.
+ * @returns {Promise<Db>} - The MongoDB database object.
  */
-async function callDataAPI(env, action, params) {
-  if (!env.ATLAS_DATA_API_ENDPOINT || !env.ATLAS_API_KEY) {
-    throw new Error("MongoDB Atlas Data API environment variables (ATLAS_DATA_API_ENDPOINT, ATLAS_API_KEY) are not configured.");
+async function getDb(env) {
+  if (!client) {
+    if (!env.MONGODB_URI) {
+      throw new Error("MONGODB_URI environment variable is not configured.");
+    }
+    client = new MongoClient(env.MONGODB_URI);
+    await client.connect();
   }
-
-  const response = await fetch(`${env.ATLAS_DATA_API_ENDPOINT}/action/${action}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'api-key': env.ATLAS_API_KEY
-    },
-    body: JSON.stringify({
-      dataSource: DATA_SOURCE,
-      database: DB_NAME,
-      collection: PLAYERS_COLLECTION,
-      ...params
-    })
-  });
-
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(`Data API request failed with status ${response.status}: ${JSON.stringify(data)}`);
-  }
-  return data;
+  return client.db(DB_NAME);
 }
 
 // --- API Handlers ---
@@ -43,7 +28,9 @@ const api = {
    * Gets the player data, creating it if it doesn't exist.
    */
   async getPlayer(env) {
-    const { document: player } = await callDataAPI(env, 'findOne', { filter: { _id: TEST_PLAYER_ID } });
+    const db = await getDb(env);
+    const players = db.collection(PLAYERS_COLLECTION);
+    let player = await players.findOne({ _id: TEST_PLAYER_ID });
 
     if (player) {
       return new Response(JSON.stringify(player), { headers: { 'Content-Type': 'application/json' } });
@@ -58,7 +45,7 @@ const api = {
       stage: 1,
     };
 
-    await callDataAPI(env, 'insertOne', { document: newPlayer });
+    await players.insertOne(newPlayer);
     return new Response(JSON.stringify(newPlayer), { headers: { 'Content-Type': 'application/json' } });
   },
 
@@ -71,7 +58,9 @@ const api = {
       return new Response('Stat name is required', { status: 400 });
     }
 
-    const { document: player } = await callDataAPI(env, 'findOne', { filter: { _id: TEST_PLAYER_ID } });
+    const db = await getDb(env);
+    const players = db.collection(PLAYERS_COLLECTION);
+    const player = await players.findOne({ _id: TEST_PLAYER_ID });
 
     if (!player) {
       return new Response('Player not found', { status: 404 });
@@ -86,21 +75,21 @@ const api = {
       return new Response(JSON.stringify({ message: 'Not enough gold' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
-    const { modifiedCount } = await callDataAPI(env, 'updateOne', {
-      filter: { _id: TEST_PLAYER_ID },
-      update: {
+    const result = await players.updateOne(
+      { _id: TEST_PLAYER_ID },
+      {
         $inc: {
           [`stats.${statName}`]: 1,
           gold: -cost
         }
       }
-    });
+    );
 
-    if (modifiedCount !== 1) {
+    if (result.modifiedCount !== 1) {
       return new Response('Failed to upgrade stat', { status: 500 });
     }
     
-    const { document: updatedPlayer } = await callDataAPI(env, 'findOne', { filter: { _id: TEST_PLAYER_ID } });
+    const updatedPlayer = await players.findOne({ _id: TEST_PLAYER_ID });
     return new Response(JSON.stringify(updatedPlayer), { headers: { 'Content-Type': 'application/json' } });
   }
 };

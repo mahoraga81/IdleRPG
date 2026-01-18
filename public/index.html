@@ -3,60 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Idle RPG</title>
+    <title>IdleRPG</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div id="auth-container">
-        <h1>Welcome to Idle RPG</h1>
-        <p>Please log in to start your adventure.</p>
-        <a href="/api/login" class="login-button">Login with Google</a>
-    </div>
-
-    <div id="game-container" style="display: none;">
-        <!-- Player Info (Filled by JS) -->
-
-        <!-- Battle Scene -->
-        <div id="battle-container">
-            <div id="stage-info">
-                <h2>Stage <span id="stage-level">1</span></h2>
-                <div class="progress-bar-container">
-                    <div id="stage-progress" class="progress-bar"></div>
-                </div>
-                <p><span id="monster-slain-count">0</span> / <span id="monsters-per-stage">10</span></p>
-            </div>
-            <div id="monster-info">
-                <h3>Monster: <span id="monster-name">Goblin</span></h3>
-                <div class="progress-bar-container">
-                    <div id="monster-hp-bar" class="progress-bar hp-bar"></div>
-                </div>
-                <p>HP: <span id="monster-hp-text">100 / 100</span></p>
-            </div>
+    <!-- Triggering a new build to resolve deployment submission issue -->
+    <div id="app">
+        <div id="loading-screen" class="active">
+            <h1>IdleRPG</h1>
+            <div class="loader"></div>
+            <p>Loading...</p>
         </div>
 
-        <!-- Game & Player Stats -->
-        <div id="stats-and-info-grid">
-            <div id="game-info-container">
-                <h3>Game Info</h3>
-                <div>Gold: <span id="player-gold">0</span></div>
-                <div>DPS: <span id="player-dps">0</span></div>
-            </div>
-
-            <div id="player-stats-container">
-                <h3>Player Stats</h3>
-                <div class="stat-row"><span>HP:</span> <span id="player-hp"></span> <button class="upgrade-button" data-stat="stats_maxHp">Upgrade</button></div>
-                <div class="stat-row"><span>Attack:</span> <span id="player-attack"></span> <button class="upgrade-button" data-stat="stats_attack">Upgrade</button></div>
-                <div class="stat-row"><span>Defense:</span> <span id="player-defense"></span> <button class="upgrade-button" data-stat="stats_defense">Upgrade</button></div>
-                <div class="stat-row"><span>Crit Rate:</span> <span id="player-crit-rate"></span>% <button class="upgrade-button" data-stat="stats_critRate">Upgrade</button></div>
-                <div class="stat-row"><span>Crit Damage:</span> <span id="player-crit-damage"></span>% <button class="upgrade-button" data-stat="stats_critDamage">Upgrade</button></div>
-                <div class="stat-row"><span>Attack Speed:</span> <span id="player-attack-speed"></span> <button class="upgrade-button" data-stat="stats_attackSpeed">Upgrade</button></div>
-                <div class="stat-row"><span>Evasion:</span> <span id="player-evasion"></span>% <button class="upgrade-button" data-stat="stats_evasion">Upgrade</button></div>
-            </div>
+        <div id="login-screen" class="hidden">
+            <h1>Welcome to IdleRPG</h1>
+            <p>A minimalist idle game experience.</p>
+            <a href="/api/login" class="login-button">Login with Google</a>
         </div>
 
-        <button id="logout-button" class="logout-button">Logout</button>
+        <div id="game-screen" class="hidden">
+            <div id="user-profile">
+                <img id="user-avatar" src="" alt="User Avatar">
+                <p id="user-name"></p>
+            </div>
+            <div id="game-content">
+                 <div id="character-info">
+                    <h2>Character</h2>
+                    <p>Level: <span id="char-level">1</span></p>
+                    <p>XP: <span id="char-xp">0</span> / <span id="xp-to-next-level">100</span></p>
+                     <div class="progress-bar-container">
+                        <div id="xp-bar" class="progress-bar"></div>
+                    </div>
+                </div>
+                <div id="monster-info">
+                    <h2>Monster</h2>
+                    <p>Name: <span id="monster-name">Slime</span></p>
+                    <p>HP: <span id="monster-hp">10</span> / <span id="monster-max-hp">10</span></p>
+                    <div class="progress-bar-container">
+                        <div id="hp-bar" class="progress-bar"></div>
+                    </div>
+                </div>
+                <button id="attack-button">Attack</button>
+                <div id="log-container">
+                    <h2>Log</h2>
+                    <div id="game-log"></div>
+                </div>
+            </div>
+        </div>
     </div>
-
     <script src="main.js"></script>
 </body>
 </html>

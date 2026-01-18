@@ -67,6 +67,7 @@ export async function onRequestGet(context) {
         if (findUserResult.success && findUserResult.data.length > 0) {
             user = findUserResult.data[0];
         } else {
+             // User does not exist, create them
             const newUser = {
                 id: googleUser.id,
                 email: googleUser.email,
@@ -79,14 +80,13 @@ export async function onRequestGet(context) {
                 [newUser.id, newUser.email, newUser.name, newUser.picture]
             );
 
-            if (!createUserResult.success) {
-                 throw new Error('Failed to create new user in database.');
-            }
-            const getNewUser = await safeQuery(DB, "SELECT * FROM users WHERE id = ?", [newUser.id]);
-            if(getNewUser.success && getNewUser.data.length > 0) {
-                 user = getNewUser.data[0];
+            // Use the data from RETURNING * directly, avoiding a separate SELECT
+            if (createUserResult.success && createUserResult.data.length > 0) {
+                user = createUserResult.data[0];
             } else {
-                 throw new Error('Failed to retrieve the newly created user.');
+                // This will now catch both the INSERT failure and the case where RETURNING * returns nothing.
+                console.error("D1 Insert/Returning Error:", createUserResult.error);
+                throw new Error('Failed to create user or retrieve the created user from DB.');
             }
         }
 

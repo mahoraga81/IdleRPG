@@ -25,7 +25,6 @@ h1 {
     width: 90%;
     max-width: 600px;
     border: 1px solid #333;
-    text-align: left;
 }
 
 #login-view {
@@ -50,13 +49,19 @@ h1 {
     box-shadow: 0 4px 10px rgba(66, 133, 244, 0.4);
 }
 
+/* --- New Game View Styles --- */
+
+#game-header {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #333;
+    margin-bottom: 1rem;
+}
+
 #user-info {
     display: flex;
     align-items: center;
     gap: 15px;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 1px solid #333;
+    margin-bottom: 1.5rem; /* Re-added margin for spacing */
 }
 
 #user-info img {
@@ -74,6 +79,36 @@ h1 {
     color: #aaa;
 }
 
+#game-menu {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.menu-button {
+    flex-grow: 1;
+    padding: 10px 15px;
+    border: 1px solid #444;
+    background-color: #2a2a2a;
+    color: #e0e0e0;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.menu-button:hover {
+    background-color: #383838;
+    border-color: #666;
+}
+
+.menu-button.active {
+    background-color: #5a9bff;
+    color: #fff;
+    border-color: #5a9bff;
+    box-shadow: 0 0 8px rgba(90, 155, 255, 0.5);
+}
+
 #character-stats h3 {
     margin-top: 0;
     color: #fff;
@@ -82,7 +117,6 @@ h1 {
     margin-bottom: 1rem;
 }
 
-/* New styles for the stats grid */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -102,6 +136,16 @@ h1 {
     color: #e0e0e0;
 }
 
+/* View visibility */
+.view {
+    display: none; /* Hide all views by default */
+}
+
+.view.active {
+    display: block; /* Show only the active view */
+}
+
+/* Fallback for older .hidden class */
 .hidden {
     display: none !important;
 }

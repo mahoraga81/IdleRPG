@@ -17,11 +17,33 @@
 
     <!-- 게임 뷰 (초기에는 숨김) -->
     <div id="game-view" class="hidden">
-        <div id="user-info"></div>
-        <div id="character-stats"></div>
-        <div id="game-content">
-            <p>게임 콘텐츠가 여기에 표시됩니다.</p>
-        </div>
+        <header id="game-header">
+            <div id="user-info"></div>
+            <nav id="game-menu">
+                <button class="menu-button active" data-view="status-view">상태</button>
+                <button class="menu-button" data-view="equipment-view">장비</button>
+                <button class="menu-button" data-view="raid-view">레이드</button>
+            </nav>
+        </header>
+
+        <main id="game-content">
+            <!-- 상태 뷰 -->
+            <div id="status-view" class="view active">
+                <div id="character-stats"></div>
+            </div>
+
+            <!-- 장비 뷰 (초기에는 숨김) -->
+            <div id="equipment-view" class="view hidden">
+                <h2>장비</h2>
+                <p>장착한 아이템이 여기에 표시됩니다.</p>
+            </div>
+
+            <!-- 레이드 뷰 (초기에는 숨김) -->
+            <div id="raid-view" class="view hidden">
+                <h2>레이드</h2>
+                <p>레이드 콘텐츠가 여기에 표시됩니다.</p>
+            </div>
+        </main>
     </div>
 
     <script src="/main.js"></script>

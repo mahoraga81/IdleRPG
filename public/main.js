@@ -3,6 +3,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const gameView = document.getElementById('game-view');
     const userInfoDiv = document.getElementById('user-info');
     const characterStatsDiv = document.getElementById('character-stats');
+    
+    // New UI elements
+    const gameMenu = document.getElementById('game-menu');
+    const menuButtons = document.querySelectorAll('.menu-button');
+    const views = document.querySelectorAll('.view');
 
     async function checkLoginStatus() {
         try {
@@ -30,6 +35,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const { user, character } = userData;
 
+        // Populate user info (now in the header)
         userInfoDiv.innerHTML = `
             <img src="${user.picture}" alt="${user.name}'s profile picture">
             <div>
@@ -38,7 +44,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
         `;
 
-        // **FIX & EXPANSION**: Display all detailed character stats
+        // Populate character stats in the 'status-view'
         characterStatsDiv.innerHTML = `
             <h3>Character Stats</h3>
             <div class="stats-grid">
@@ -58,5 +64,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
     }
 
+    // --- New Menu Switching Logic ---
+    gameMenu.addEventListener('click', (e) => {
+        if (!e.target.classList.contains('menu-button')) return;
+
+        const targetViewId = e.target.dataset.view;
+
+        // Update button active state
+        menuButtons.forEach(button => {
+            button.classList.remove('active');
+        });
+        e.target.classList.add('active');
+
+        // Switch view
+        views.forEach(view => {
+            if (view.id === targetViewId) {
+                view.classList.add('active');
+                view.classList.remove('hidden'); // Ensure it's not hidden by the old class
+            } else {
+                view.classList.remove('active');
+                view.classList.add('hidden'); // Use hidden for consistency if needed, but active class handles display
+            }
+        });
+    });
+
+    // Initial setup
     checkLoginStatus();
 });

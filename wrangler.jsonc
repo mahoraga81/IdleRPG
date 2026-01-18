@@ -7,5 +7,13 @@
   "main": "./functions/_worker.js",
   "assets": {
     "directory": "./"
-  }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB", 
+      "database_name": "IdleRPG-DB",
+      "database_id": "",
+      "preview_database_id": ""
+    }
+  ]
 }

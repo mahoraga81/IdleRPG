@@ -2,7 +2,7 @@ async function runMigrations(DB) {
     try {
         const migrations = {
             '20240101_initial_setup': `
-                CREATE TABLE users (
+                CREATE TABLE IF NOT EXISTS users (
                     id TEXT PRIMARY KEY,
                     google_id TEXT UNIQUE,
                     email TEXT NOT NULL,
@@ -21,7 +21,7 @@ async function runMigrations(DB) {
                     evasion_rate REAL NOT NULL DEFAULT 0.002,
                     dps REAL NOT NULL DEFAULT 5.41
                 );
-                CREATE TABLE sessions ( id TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires_at TEXT NOT NULL, FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE );
+                CREATE TABLE IF NOT EXISTS sessions ( id TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires_at TEXT NOT NULL, FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE );
             `,
             '20240102_add_stage_and_login_tracking': `
                 ALTER TABLE users ADD COLUMN current_stage INTEGER NOT NULL DEFAULT 1;
@@ -33,7 +33,7 @@ async function runMigrations(DB) {
         };
         const migrationTable = await DB.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='migrations'").first();
         if (!migrationTable) {
-            await DB.prepare("CREATE TABLE migrations (id TEXT PRIMARY KEY, applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)").run();
+            await DB.prepare("CREATE TABLE IF NOT EXISTS migrations (id TEXT PRIMARY KEY, applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)").run();
         }
         const appliedMigrations = await DB.prepare("SELECT id FROM migrations").all();
         const appliedIds = appliedMigrations.results.map(row => row.id);

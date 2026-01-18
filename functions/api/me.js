@@ -4,7 +4,7 @@ async function runMigrations(DB) {
     try {
         const migrations = {
             '20240101_initial_setup': `
-                CREATE TABLE users (
+                CREATE TABLE IF NOT EXISTS users (
                     id TEXT PRIMARY KEY,
                     google_id TEXT UNIQUE,
                     email TEXT NOT NULL,
@@ -23,7 +23,7 @@ async function runMigrations(DB) {
                     evasion_rate REAL NOT NULL DEFAULT 0.002,
                     dps REAL NOT NULL DEFAULT 5.41
                 );
-                CREATE TABLE sessions ( id TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires_at TEXT NOT NULL, FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE );
+                CREATE TABLE IF NOT EXISTS sessions ( id TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires_at TEXT NOT NULL, FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE );
             `,
             '20240102_add_stage_and_login_tracking': `
                 ALTER TABLE users ADD COLUMN current_stage INTEGER NOT NULL DEFAULT 1;

@@ -25,7 +25,7 @@ async function runMigrations(DB) {
             `,
             '20240102_add_stage_and_login_tracking': `
                 ALTER TABLE users ADD COLUMN current_stage INTEGER NOT NULL DEFAULT 1;
-                ALTER TABLE users ADD COLUMN last_login TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+                ALTER TABLE users ADD COLUMN last_login TIMESTAMP;
             `,
             '20240103_add_stage_progress': `
                 ALTER TABLE users ADD COLUMN stage_progress INTEGER NOT NULL DEFAULT 0;

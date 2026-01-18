@@ -110,4 +110,3 @@ export async function onRequestGet(context) {
         return new Response(error.toString(), { status: 500 });
     }
 }
-

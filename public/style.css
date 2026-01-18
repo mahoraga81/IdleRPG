@@ -5,7 +5,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-top: 2rem;
+    padding: 2rem;
     min-height: 100vh;
     margin: 0;
 }
@@ -13,11 +13,10 @@ body {
 h1 {
     color: #ffffff;
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.5), 0 0 20px rgba(255, 255, 255, 0.3);
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
 }
 
-#login-view,
-#game-view {
+#login-view {
     background-color: #1e1e1e;
     padding: 2rem;
     border-radius: 12px;
@@ -25,9 +24,6 @@ h1 {
     width: 90%;
     max-width: 600px;
     border: 1px solid #333;
-}
-
-#login-view {
     text-align: center;
 }
 
@@ -49,103 +45,62 @@ h1 {
     box-shadow: 0 4px 10px rgba(66, 133, 244, 0.4);
 }
 
-/* --- New Game View Styles --- */
-
-#game-header {
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #333;
-    margin-bottom: 1rem;
+/* --- Battle Screen Styles --- */
+#battle-screen {
+    background-color: #252525;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    width: 90%;
+    max-width: 600px;
+    border: 1px solid #333;
+    margin-bottom: 1.5rem;
 }
 
-#user-info {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 1.5rem; /* Re-added margin for spacing */
-}
+#stage-info, #monster-info { margin-bottom: 1rem; }
+#stage-level, #monster-name { margin: 0 0 0.5rem 0; font-size: 1.5rem; color: #fff; text-align: center; }
 
-#user-info img {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    border: 2px solid #5a9bff;
-}
-
-#user-info div strong {
-    font-size: 1.2rem;
-    display: block;
-}
-#user-info div small {
-    color: #aaa;
-}
-
-#game-menu {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.menu-button {
-    flex-grow: 1;
-    padding: 10px 15px;
+.progress-bar-container, .hp-bar-container {
+    width: 100%;
+    background-color: #1e1e1e;
+    border-radius: 8px;
+    padding: 3px;
     border: 1px solid #444;
-    background-color: #2a2a2a;
-    color: #e0e0e0;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 1rem;
-    font-weight: 500;
-    transition: background-color 0.2s, border-color 0.2s;
 }
 
-.menu-button:hover {
-    background-color: #383838;
-    border-color: #666;
+.progress-bar, .hp-bar {
+    height: 15px;
+    border-radius: 5px;
+    transition: width 0.3s ease-in-out;
+    background-size: 200% 200%;
 }
 
-.menu-button.active {
-    background-color: #5a9bff;
-    color: #fff;
-    border-color: #5a9bff;
-    box-shadow: 0 0 8px rgba(90, 155, 255, 0.5);
-}
+#stage-progress { background-color: #ffc107; background-image: linear-gradient(45deg, rgba(255,255,255,0.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.15) 75%, transparent 75%, transparent); }
+#monster-hp { background-color: #e91e63; background-image: linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.1) 75%, transparent 75%, transparent); }
 
-#character-stats h3 {
-    margin-top: 0;
-    color: #fff;
-    border-bottom: 1px solid #444;
-    padding-bottom: 0.5rem;
-    margin-bottom: 1rem;
-}
+/* --- Game View & Components --- */
+#game-view { background-color: #1e1e1e; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5); width: 90%; max-width: 600px; border: 1px solid #333; }
+#game-header { padding-bottom: 1rem; border-bottom: 1px solid #333; margin-bottom: 1rem; }
+#user-info { display: flex; align-items: center; gap: 15px; margin-bottom: 1.5rem; }
+#user-info img { width: 60px; height: 60px; border-radius: 50%; border: 2px solid #5a9bff; }
+#user-info div strong { font-size: 1.2rem; display: block; }
+#user-info div small { color: #aaa; }
+#game-menu { display: flex; gap: 0.5rem; }
+.menu-button { flex-grow: 1; padding: 10px 15px; border: 1px solid #444; background-color: #2a2a2a; color: #e0e0e0; border-radius: 6px; cursor: pointer; font-size: 1rem; font-weight: 500; transition: background-color 0.2s, border-color 0.2s; }
+.menu-button:hover { background-color: #383838; border-color: #666; }
+.menu-button.active { background-color: #5a9bff; color: #fff; border-color: #5a9bff; box-shadow: 0 0 8px rgba(90, 155, 255, 0.5); }
 
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 0.75rem;
-}
+/* --- New Stat Upgrade Styles --- */
+#character-stats h3 { margin-top: 0; color: #fff; border-bottom: 1px solid #444; padding-bottom: 0.5rem; margin-bottom: 1rem; }
+#character-stats .stat-item { display: flex; align-items: center; justify-content: space-between; background-color: #2a2a2a; padding: 10px; border-radius: 6px; margin-bottom: 0.75rem; border-left: 3px solid #5a9bff; }
+.stat-info { display: flex; flex-direction: column; }
+.stat-info span { font-size: 1rem; }
+.stat-info .stat-level { font-size: 0.8rem; color: #aaa; }
+.upgrade-button { background-color: #4CAF50; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; font-size: 1.2rem; font-weight: bold; cursor: pointer; transition: background-color 0.2s, transform 0.2s; display: flex; align-items: center; justify-content: center; }
+.upgrade-button:hover { background-color: #66bb6a; transform: scale(1.1); }
+.upgrade-button:disabled { background-color: #555; cursor: not-allowed; transform: none; }
+.upgrade-cost { font-size: 0.9rem; color: #ffc107; margin-right: 1rem; }
 
-.stats-grid span {
-    background-color: #2a2a2a;
-    padding: 10px;
-    border-radius: 6px;
-    display: flex;
-    justify-content: space-between;
-    border-left: 3px solid #5a9bff;
-}
-
-.stats-grid span strong {
-    color: #e0e0e0;
-}
-
-/* View visibility */
-.view {
-    display: none; /* Hide all views by default */
-}
-
-.view.active {
-    display: block; /* Show only the active view */
-}
-
-/* Fallback for older .hidden class */
-.hidden {
-    display: none !important;
-}
+.view { display: none; }
+.view.active { display: block; }
+.hidden { display: none !important; }

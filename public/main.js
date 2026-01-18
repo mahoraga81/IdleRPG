@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return response.json();
     }
 
-    // --- UI Update Functions ---
+    // --- UI Update Functions (Now with null-checks for robustness) ---
     function updateAllUI() {
         if (!gameState.character) return;
         updateCharacterUI(gameState.character);
@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     function updateCharacterUI(character) {
+        if (!characterStatsDiv || !character) return;
         const statMapping = { str: '힘', dex: '민첩' };
         characterStatsDiv.innerHTML = `
             <h3>Character Stats</h3>
@@ -63,7 +64,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function updateUpgradeButtons(character) {
-        const upgradeButtons = document.querySelectorAll('.upgrade-button');
+        if (!characterStatsDiv || !character) return;
+        const upgradeButtons = characterStatsDiv.querySelectorAll('.upgrade-button');
         upgradeButtons.forEach(button => {
             const stat = button.dataset.stat;
             const cost = getUpgradeCost(character[stat]);
@@ -75,10 +77,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!character || !monster) return;
         const requiredKills = character.current_stage;
         const currentKills = character.stage_progress || 0;
-        stageLevel.textContent = `Stage ${character.current_stage} (${currentKills}/${requiredKills})`;
-        stageProgress.style.width = `${(currentKills / requiredKills) * 100}%`;
-        monsterName.innerHTML = `${monster.name} <small style="color: ${monster.grade === 'Boss' ? '#e91e63' : '#ccc'}">[${monster.grade}]</small>`;
-        monsterHpBar.style.width = `${Math.max(0, (monster.hp / monster.maxHp) * 100)}%`;
+        if (stageLevel) stageLevel.textContent = `Stage ${character.current_stage} (${currentKills}/${requiredKills})`;
+        if (stageProgress) stageProgress.style.width = `${(currentKills / requiredKills) * 100}%`;
+        if (monsterName) monsterName.innerHTML = `${monster.name} <small style="color: ${monster.grade === 'Boss' ? '#e91e63' : '#ccc'}">[${monster.grade}]</small>`;
+        if (monsterHpBar) monsterHpBar.style.width = `${Math.max(0, (monster.hp / monster.maxHp) * 100)}%`;
     }
 
     // --- Battle Logic ---
@@ -93,7 +95,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (gameState.monster.hp <= 0) {
             gameState.isBattleLocked = true;
             clearInterval(battleInterval);
-            monsterHpBar.style.width = '0%';
+            if (monsterHpBar) monsterHpBar.style.width = '0%';
             handleVictory();
             return;
         }
@@ -108,6 +110,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             updateAllUI();
         } catch (error) {
             console.error('Victory handling failed:', error);
+            showError('전투 승리 처리 중 오류가 발생했습니다.');
         } finally {
             gameState.isBattleLocked = false;
             startBattleLoop();
@@ -126,9 +129,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             updateAllUI();
         } catch (error) {
             console.error(`Failed to upgrade ${stat}:`, error);
-            alert(`스탯 강화 실패: ${error.message}`);
+            showError(`스탯 강화 실패: ${error.message}`);
         }
     }
+
+    // --- Generic Error Display ---
+    function showError(message, duration = 3000) {
+        const errorPopup = document.getElementById('error-popup');
+        const errorMessage = document.getElementById('error-message');
+        if (!errorPopup || !errorMessage) {
+            alert(message); // Fallback to alert if custom popup is not in DOM
+            return;
+        }
+        errorMessage.textContent = message;
+        errorPopup.classList.add('show');
+        setTimeout(() => errorPopup.classList.remove('show'), duration);
+    }
+
 
     // --- Initialization ---
     async function initializeGame() {
@@ -141,42 +158,52 @@ document.addEventListener('DOMContentLoaded', async () => {
             updateAllUI();
             startBattleLoop();
         } catch (error) {
-            console.error('Initialization failed:', error);
-            alert(`Failed to load game data. Returning to login screen.\n\n[Debug Info]\n${error.message}`);
+            // Don't show a popup here, as not being logged in is an expected state.
+            console.log('Initialization check failed (user likely not logged in):', error.message);
             showLoginView();
         }
     }
 
     function showLoginView() {
-        loginView.classList.remove('hidden');
-        gameView.classList.add('hidden');
+        if(loginView) loginView.classList.remove('hidden');
+        if(gameView) gameView.classList.add('hidden');
         if (battleInterval) clearInterval(battleInterval);
     }
 
     function showGameView() {
         const user = gameState.user;
-        loginView.classList.add('hidden');
-        gameView.classList.remove('hidden');
-        userInfoDiv.innerHTML = `<img src="${user.picture}" alt="${user.name}'s profile picture"><div><strong>${user.name}</strong><small>${user.email}</small></div>`;
+        if(loginView) loginView.classList.add('hidden');
+        if(gameView) gameView.classList.remove('hidden');
+        if(userInfoDiv && user) userInfoDiv.innerHTML = `<img src="${user.picture}" alt="${user.name}'s profile picture"><div><strong>${user.name}</strong><small>${user.email}</small></div>`;
         
-        document.querySelector('.menu-button[data-view="battle-screen"]').classList.add('active');
-        battleScreen.classList.add('active');
+        const battleMenuButton = document.querySelector('.menu-button[data-view="battle-screen"]');
+        if (battleMenuButton) battleMenuButton.classList.add('active');
+        if(battleScreen) battleScreen.classList.add('active');
     }
 
     // --- Event Listeners ---
-    gameMenu.addEventListener('click', (e) => {
-        if (!e.target.classList.contains('menu-button')) return;
-        const targetViewId = e.target.dataset.view;
-        menuButtons.forEach(button => button.classList.remove('active'));
-        e.target.classList.add('active');
-        views.forEach(view => view.classList.toggle('active', view.id === targetViewId));
-    });
+    if (gameMenu) {
+        gameMenu.addEventListener('click', (e) => {
+            if (!e.target.classList.contains('menu-button')) return;
+            const targetViewId = e.target.dataset.view;
+            if (!targetViewId) return;
 
-    characterStatsDiv.addEventListener('click', (e) => {
-        if (e.target.classList.contains('upgrade-button')) {
-            handleUpgrade(e.target.dataset.stat);
-        }
-    });
+            menuButtons.forEach(button => button.classList.remove('active'));
+            e.target.classList.add('active');
+
+            views.forEach(view => {
+                if (view) view.classList.toggle('active', view.id === targetViewId);
+            });
+        });
+    }
+
+    if (characterStatsDiv) {
+        characterStatsDiv.addEventListener('click', (e) => {
+            if (e.target && e.target.classList.contains('upgrade-button')) {
+                handleUpgrade(e.target.dataset.stat);
+            }
+        });
+    }
 
     initializeGame();
 });

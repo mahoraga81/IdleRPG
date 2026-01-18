@@ -60,14 +60,14 @@ export async function onRequestGet(context) {
             throw new Error(`Failed to fetch user info: ${JSON.stringify(googleUser)}`);
         }
 
-        // 3. Check if user exists in D1, or create a new one
+        // 3. Check if user exists in D1, or create a new one, handling race conditions
         let user;
         const findUserResult = await safeQuery(DB, "SELECT * FROM users WHERE id = ?", [googleUser.id]);
 
         if (findUserResult.success && findUserResult.data.length > 0) {
             user = findUserResult.data[0];
         } else {
-             // User does not exist, create them
+            // User does not exist, try to create them.
             const newUser = {
                 id: googleUser.id,
                 email: googleUser.email,
@@ -80,18 +80,25 @@ export async function onRequestGet(context) {
                 [newUser.id, newUser.email, newUser.name, newUser.picture]
             );
 
-            // Use the data from RETURNING * directly, avoiding a separate SELECT
             if (createUserResult.success && createUserResult.data.length > 0) {
+                // INSERT was successful
                 user = createUserResult.data[0];
             } else {
-                // This will now catch both the INSERT failure and the case where RETURNING * returns nothing.
-                console.error("D1 Insert/Returning Error:", createUserResult.error);
-                throw new Error('Failed to create user or retrieve the created user from DB.');
+                // INSERT failed, likely due to a race condition. Let's try to SELECT the user again.
+                console.log("INSERT failed, likely a race condition. Retrying SELECT.", createUserResult.error);
+                const raceConditionSelectResult = await safeQuery(DB, "SELECT * FROM users WHERE id = ?", [googleUser.id]);
+                
+                if (raceConditionSelectResult.success && raceConditionSelectResult.data.length > 0) {
+                    user = raceConditionSelectResult.data[0];
+                } else {
+                    // If the user *still* doesn't exist, something else is wrong.
+                    throw new Error(`Database error: Could not create user, and could not find them after a failed insert. Original error: ${createUserResult.error}`);
+                }
             }
         }
 
         // 4. Create a session
-        const sessionId = generateSessionId(); // Use the new crypto-based generator
+        const sessionId = generateSessionId();
         const sessionExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
         await safeQuery(
@@ -106,7 +113,7 @@ export async function onRequestGet(context) {
         headers.append('Location', '/');
         
         return new Response(null, {
-            status: 302, // Found (redirect)
+            status: 302,
             headers: headers,
         });
 

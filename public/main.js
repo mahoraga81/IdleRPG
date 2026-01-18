@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- UI Components ---
     const loginView = document.getElementById('login-view');
     const gameView = document.getElementById('game-view');
+    const battleScreen = document.getElementById('battle-screen'); // 전투 화면 참조 추가
     const userInfoDiv = document.getElementById('user-info');
     const characterStatsDiv = document.getElementById('character-stats');
     const stageLevel = document.getElementById('stage-level');
@@ -86,7 +87,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function battleLoop() {
-        if (gameState.isBattleLocked || !gameState.monster) return;
+        if (gameState.isBattleLocked || !gameState.monster || !gameState.character) return;
         gameState.monster.hp -= gameState.character.dps / 10;
         if (gameState.monster.hp <= 0) {
             gameState.isBattleLocked = true;
@@ -102,7 +103,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const result = await fetcher('/api/battle', { method: 'POST' });
             gameState.character = result.character;
-            gameState.monster = result.nextMonster; // Always use the monster from the server
+            gameState.monster = result.nextMonster;
             updateAllUI();
         } catch (error) {
             console.error('Victory handling failed:', error);
@@ -124,6 +125,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             updateAllUI();
         } catch (error) {
             console.error(`Failed to upgrade ${stat}:`, error);
+            alert(`스탯 강화 실패: ${error.message}`); // 사용자에게 오류 알림
         }
     }
 
@@ -154,6 +156,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         loginView.classList.add('hidden');
         gameView.classList.remove('hidden');
         userInfoDiv.innerHTML = `<img src="${user.picture}" alt="${user.name}'s profile picture"><div><strong>${user.name}</strong><small>${user.email}</small></div>`;
+        
+        // 전투 화면을 기본으로 활성화
+        document.querySelector('.menu-button[data-view="battle-screen"]').classList.add('active');
+        battleScreen.classList.add('active');
     }
 
     // --- Event Listeners ---

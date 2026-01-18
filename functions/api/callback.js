@@ -1,5 +1,20 @@
 async function runMigrations(DB) {
     try {
+        // Corruption Check: If users table exists but is missing google_id, it's a sign of a broken schema.
+        const usersTable = await DB.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'").first();
+        if (usersTable) {
+            const columns = await DB.prepare("PRAGMA table_info(users)").all();
+            const hasGoogleId = columns.results.some(col => col.name === 'google_id');
+            if (!hasGoogleId) {
+                console.warn("Corrupt 'users' table detected (missing google_id). Resetting database schema.");
+                await DB.batch([
+                    DB.prepare("DROP TABLE IF EXISTS sessions"),
+                    DB.prepare("DROP TABLE IF EXISTS users"),
+                    DB.prepare("DROP TABLE IF EXISTS migrations")
+                ]);
+            }
+        }
+
         const migrations = {
             '20240101_initial_setup': `
                 CREATE TABLE IF NOT EXISTS users (
@@ -63,10 +78,8 @@ export async function onRequestGet(context) {
     }
 
     try {
-        // Use the consistent migration logic instead of the old schema function
         await runMigrations(DB);
 
-        // 1. Exchange authorization code for access token
         const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -85,14 +98,11 @@ export async function onRequestGet(context) {
             return new Response(`Error fetching token: ${tokenData.error_description}`, { status: 500 });
         }
 
-        // 2. Use access token to get user profile
         const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
             headers: { Authorization: `Bearer ${tokenData.access_token}` },
         });
         const userData = await userResponse.json();
 
-        // 3. Atomically create or update user
-        // IMPORTANT: The google_id from user info is the primary key for our logic.
         const googleId = userData.id;
 
         const upsertQuery = `
@@ -103,10 +113,8 @@ export async function onRequestGet(context) {
                 name = excluded.name,
                 picture = excluded.picture;
         `;
-        // Note: The user's primary key (`id`) is the google_id in our new schema
         await DB.prepare(upsertQuery).bind(googleId, googleId, userData.email, userData.name, userData.picture).run();
 
-        // 4. Create a session for the user
         const sessionId = crypto.randomUUID();
         const sessionExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
         
@@ -114,7 +122,6 @@ export async function onRequestGet(context) {
             'INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)'
         ).bind(sessionId, googleId, sessionExpiry.toISOString()).run();
 
-        // 5. Set session cookie and redirect to the main page
         const headers = new Headers();
         headers.append('Set-Cookie', `session_id=${sessionId}; Path=/; HttpOnly; Secure; SameSite=Lax; Expires=${sessionExpiry.toUTCString()}`);
         headers.append('Location', '/');

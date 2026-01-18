@@ -2,6 +2,21 @@ import { getCurrentMonster } from '../game/monsters.js';
 
 async function runMigrations(DB) {
     try {
+        // Corruption Check: If users table exists but is missing google_id, it's a sign of a broken schema.
+        const usersTable = await DB.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'").first();
+        if (usersTable) {
+            const columns = await DB.prepare("PRAGMA table_info(users)").all();
+            const hasGoogleId = columns.results.some(col => col.name === 'google_id');
+            if (!hasGoogleId) {
+                console.warn("Corrupt 'users' table detected (missing google_id). Resetting database schema.");
+                await DB.batch([
+                    DB.prepare("DROP TABLE IF EXISTS sessions"),
+                    DB.prepare("DROP TABLE IF EXISTS users"),
+                    DB.prepare("DROP TABLE IF EXISTS migrations")
+                ]);
+            }
+        }
+
         const migrations = {
             '20240101_initial_setup': `
                 CREATE TABLE IF NOT EXISTS users (
@@ -35,7 +50,7 @@ async function runMigrations(DB) {
         };
         const migrationTable = await DB.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='migrations'").first();
         if (!migrationTable) {
-            await DB.prepare("CREATE TABLE migrations (id TEXT PRIMARY KEY, applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)").run();
+            await DB.prepare("CREATE TABLE IF NOT EXISTS migrations (id TEXT PRIMARY KEY, applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)").run();
         }
         const appliedMigrations = await DB.prepare("SELECT id FROM migrations").all();
         const appliedIds = appliedMigrations.results.map(row => row.id);
@@ -74,7 +89,6 @@ export async function onRequestGet(context) {
         let dbUser = await DB.prepare('SELECT * FROM users WHERE id = ?').bind(session.user_id).first();
         if (!dbUser) return new Response(JSON.stringify({ error: "User not found" }), { status: 404 });
 
-        // --- Stat Integrity Check and Recalculation ---
         const correctStats = {
             ap: dbUser.str * 5,
             hp: 50 + (dbUser.str * 10),
@@ -99,14 +113,13 @@ export async function onRequestGet(context) {
         
         await DB.prepare('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?').bind(dbUser.id).run();
 
-        // Get current monster based on user's progress
         const monster = getCurrentMonster(dbUser);
 
         const { google_id, ...characterData } = dbUser;
         const responsePayload = {
             user: { id: dbUser.id, email: dbUser.email, name: dbUser.name, picture: dbUser.picture },
             character: characterData,
-            monster: monster // Include monster data in the response
+            monster: monster
         };
 
         return new Response(JSON.stringify(responsePayload), { headers: { 'Content-Type': 'application/json' } });

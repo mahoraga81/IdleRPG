@@ -1,0 +1,11 @@
+{
+  "name": "idlerpg",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler pages deploy ."
+  },
+  "dependencies": {
+    "mongodb": "^6.5.0"
+  }
+}

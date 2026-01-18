@@ -13,7 +13,6 @@ const jsonResponse = (data, status = 200, headers = {}) => new Response(JSON.str
 const JWT_COOKIE_NAME = 'jwt-token';
 
 // ========== AUTHENTICATION MIDDLEWARE ==========
-// This middleware will be applied to specific routes that need protection
 const authMiddleware = async (request, env) => {
     const cookieHeader = request.headers.get('Cookie');
     if (!cookieHeader || !cookieHeader.includes(JWT_COOKIE_NAME)) {
@@ -35,20 +34,16 @@ const authMiddleware = async (request, env) => {
             return error(401, 'Unauthorized: Invalid token payload');
         }
         
-        // Check if the session is still valid
         const storedSession = await env.DB.prepare('SELECT session_token_id FROM players WHERE id = ?').bind(payload.sub).first('session_token_id');
         if (storedSession !== payload.jti) {
-            // If the session ID in the DB does not match the one in the token, this token is for an old session.
             return error(401, 'Unauthorized: Session expired. Please log in again.');
         }
 
-        // Attach userId and sessionId to the request object for later use
         request.userId = payload.sub;
         request.sessionId = payload.jti;
 
     } catch (err) {
         console.error("Auth Middleware Error:", err);
-        // If token is expired, invalid, etc.
         return error(401, 'Unauthorized: Invalid or expired token');
     }
 };
@@ -60,9 +55,12 @@ const authMiddleware = async (request, env) => {
 const authRouter = Router({ base: '/api/auth' });
 
 authRouter.get('/google/login', (request, env) => {
+  const { origin } = new URL(request.url);
+  const redirectUri = `${origin}/api/auth/google/callback`;
+
   const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
   googleAuthUrl.searchParams.set('client_id', env.GOOGLE_CLIENT_ID);
-  googleAuthUrl.searchParams.set('redirect_uri', env.REDIRECT_URL);
+  googleAuthUrl.searchParams.set('redirect_uri', redirectUri);
   googleAuthUrl.searchParams.set('response_type', 'code');
   googleAuthUrl.searchParams.set('scope', 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email');
   googleAuthUrl.searchParams.set('access_type', 'offline');
@@ -71,8 +69,9 @@ authRouter.get('/google/login', (request, env) => {
 });
 
 authRouter.get('/google/callback', async (request, env) => {
-  const { searchParams } = new URL(request.url);
+  const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
+  const redirectUri = `${origin}/api/auth/google/callback`;
 
   if (!code) {
     return jsonResponse({ message: 'Authorization code is missing' }, 400);
@@ -86,7 +85,7 @@ authRouter.get('/google/callback', async (request, env) => {
         code,
         client_id: env.GOOGLE_CLIENT_ID,
         client_secret: env.GOOGLE_CLIENT_SECRET,
-        redirect_uri: env.REDIRECT_URL,
+        redirect_uri: redirectUri,
         grant_type: 'authorization_code',
       }),
     });

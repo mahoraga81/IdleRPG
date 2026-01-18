@@ -84,19 +84,26 @@ export async function onRequestGet(context) {
             );
 
             if (createUserResult.success && createUserResult.data.length > 0) {
-                // INSERT was successful
                 user = createUserResult.data[0];
             } else {
-                // INSERT failed, likely due to a race condition. Wait for replication and retry SELECT.
-                console.log("INSERT failed, likely a race condition. Waiting before retrying SELECT.", createUserResult.error);
-                await sleep(250); // Wait for 250ms for DB replication
-                const raceConditionSelectResult = await safeQuery(DB, "SELECT * FROM users WHERE id = ?", [googleUser.id]);
-                
-                if (raceConditionSelectResult.success && raceConditionSelectResult.data.length > 0) {
-                    user = raceConditionSelectResult.data[0];
-                } else {
-                    // If the user *still* doesn't exist, something else is wrong.
-                    throw new Error(`Database error: Could not create user, and could not find them after a failed insert. Original error: ${createUserResult.error}`);
+                // INSERT failed, likely due to a race condition. Retry SELECT with backoff.
+                console.log("INSERT failed, likely a race condition. Retrying SELECT with backoff.", createUserResult.error);
+                let userFound = false;
+                const maxRetries = 5;
+                for (let i = 0; i < maxRetries; i++) {
+                    await sleep(300 * (i + 1)); // 300ms, 600ms, 900ms...
+                    console.log(`Retry attempt #${i + 1}/${maxRetries}...`);
+                    const retrySelectResult = await safeQuery(DB, "SELECT * FROM users WHERE id = ?", [googleUser.id]);
+                    if (retrySelectResult.success && retrySelectResult.data.length > 0) {
+                        user = retrySelectResult.data[0];
+                        userFound = true;
+                        console.log("User found on retry.");
+                        break; // Exit loop
+                    }
+                }
+
+                if (!userFound) {
+                    throw new Error(`Database error: Could not create user, and could not find them after multiple retries. Original error: ${createUserResult.error}`);
                 }
             }
         }

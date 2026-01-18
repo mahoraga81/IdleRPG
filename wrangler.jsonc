@@ -15,7 +15,8 @@
         "dns": "cf-mongodb-polyfills/dns",
         "crypto": "node:crypto",
         "stream": "node:stream",
-        "process": "node:process"
+        "process": "node:process",
+        "util": "node:util"
       }
     }
   }

@@ -11,16 +11,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- UI Components ---
     const loginView = document.getElementById('login-view');
     const gameView = document.getElementById('game-view');
-    const battleScreen = document.getElementById('battle-screen');
     const userInfoDiv = document.getElementById('user-info');
     const characterStatsDiv = document.getElementById('character-stats');
     const stageLevel = document.getElementById('stage-level');
     const stageProgress = document.getElementById('stage-progress');
     const monsterName = document.getElementById('monster-name');
-    const monsterHpBar = document.getElementById('monster-hp');
-    const gameMenu = document.getElementById('game-menu');
-    const menuButtons = document.querySelectorAll('.menu-button');
-    const views = document.querySelectorAll('.view');
+    const monsterHp = document.getElementById('monster-hp');
 
     // --- Helper & API Functions ---
     function getUpgradeCost(level) {
@@ -37,30 +33,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         return response.json();
     }
 
-    // --- UI Update Functions (Now with null-checks for robustness) ---
+    // --- UI Update Functions ---
     function updateAllUI() {
         if (!gameState.character) return;
         updateCharacterUI(gameState.character);
         updateBattleUI(gameState.character, gameState.monster);
         updateUpgradeButtons(gameState.character);
     }
-    
+
     function updateCharacterUI(character) {
         if (!characterStatsDiv || !character) return;
-
-        // Derived stats mapping (Read-only)
-        const derivedStatMapping = {
-            hp: '체력',
-            ap: '공격력',
-            dps: 'DPS',
-            crit_rate: '치명타율',
-            evasion_rate: '회피율',
-        };
-
-        // Base stats mapping (Upgradeable)
+        const derivedStatMapping = { hp: '체력', ap: '공격력', dps: 'DPS', crit_rate: '치명타율', evasion_rate: '회피율' };
         const baseStatMapping = { str: '힘', dex: '민첩' };
-
-        // Function to format percentage values
         const formatPercent = (value) => `${(value * 100).toFixed(2)}%`;
 
         characterStatsDiv.innerHTML = `
@@ -93,8 +77,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function updateUpgradeButtons(character) {
         if (!characterStatsDiv || !character) return;
-        const upgradeButtons = characterStatsDiv.querySelectorAll('.upgrade-button');
-        upgradeButtons.forEach(button => {
+        characterStatsDiv.querySelectorAll('.upgrade-button').forEach(button => {
             const stat = button.dataset.stat;
             const cost = getUpgradeCost(character[stat]);
             button.disabled = character.gold < cost;
@@ -107,8 +90,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const currentKills = character.stage_progress || 0;
         if (stageLevel) stageLevel.textContent = `Stage ${character.current_stage} (${currentKills}/${requiredKills})`;
         if (stageProgress) stageProgress.style.width = `${(currentKills / requiredKills) * 100}%`;
-        if (monsterName) monsterName.innerHTML = `${monster.name} <small style="color: ${monster.grade === 'Boss' ? '#e91e63' : '#ccc'}">[${monster.grade}]</small>`;
-        if (monsterHpBar) monsterHpBar.style.width = `${Math.max(0, (monster.hp / monster.maxHp) * 100)}%`;
+        if (monsterName) monsterName.innerHTML = `${monster.name} <small>[${monster.grade}]</small>`;
+        if (monsterHp) monsterHp.style.width = `${Math.max(0, (monster.hp / monster.maxHp) * 100)}%`;
     }
 
     // --- Battle Logic ---
@@ -123,7 +106,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (gameState.monster.hp <= 0) {
             gameState.isBattleLocked = true;
             clearInterval(battleInterval);
-            if (monsterHpBar) monsterHpBar.style.width = '0%';
+            if (monsterHp) monsterHp.style.width = '0%';
             handleVictory();
             return;
         }
@@ -166,7 +149,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const errorPopup = document.getElementById('error-popup');
         const errorMessage = document.getElementById('error-message');
         if (!errorPopup || !errorMessage) {
-            alert(message); // Fallback to alert if custom popup is not in DOM
+            alert(message); 
             return;
         }
         errorMessage.textContent = message;
@@ -174,6 +157,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         setTimeout(() => errorPopup.classList.remove('show'), duration);
     }
 
+    // --- View Management ---
+    function showLoginView() {
+        if (loginView) loginView.classList.remove('hidden');
+        if (gameView) gameView.classList.add('hidden');
+        if (battleInterval) clearInterval(battleInterval);
+    }
+
+    function showGameView() {
+        const user = gameState.user;
+        if (loginView) loginView.classList.add('hidden');
+        if (gameView) gameView.classList.remove('hidden');
+        if (userInfoDiv && user) {
+            userInfoDiv.innerHTML = `<img src="${user.picture}" alt="${user.name}'s profile picture"><div><strong>${user.name}</strong><small>${user.email}</small></div>`;
+        }
+    }
+
+    // --- Event Listeners ---
+    if (characterStatsDiv) {
+        characterStatsDiv.addEventListener('click', (e) => {
+            if (e.target && e.target.classList.contains('upgrade-button')) {
+                handleUpgrade(e.target.dataset.stat);
+            }
+        });
+    }
 
     // --- Initialization ---
     async function initializeGame() {
@@ -186,51 +193,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             updateAllUI();
             startBattleLoop();
         } catch (error) {
-            // Don't show a popup here, as not being logged in is an expected state.
             console.log('Initialization check failed (user likely not logged in):', error.message);
             showLoginView();
         }
-    }
-
-    function showLoginView() {
-        if(loginView) loginView.classList.remove('hidden');
-        if(gameView) gameView.classList.add('hidden');
-        if (battleInterval) clearInterval(battleInterval);
-    }
-
-    function showGameView() {
-        const user = gameState.user;
-        if(loginView) loginView.classList.add('hidden');
-        if(gameView) gameView.classList.remove('hidden');
-        if(userInfoDiv && user) userInfoDiv.innerHTML = `<img src="${user.picture}" alt="${user.name}'s profile picture"><div><strong>${user.name}</strong><small>${user.email}</small></div>`;
-        
-        const battleMenuButton = document.querySelector('.menu-button[data-view="battle-screen"]');
-        if (battleMenuButton) battleMenuButton.classList.add('active');
-        if(battleScreen) battleScreen.classList.add('active');
-    }
-
-    // --- Event Listeners ---
-    if (gameMenu) {
-        gameMenu.addEventListener('click', (e) => {
-            if (!e.target.classList.contains('menu-button')) return;
-            const targetViewId = e.target.dataset.view;
-            if (!targetViewId) return;
-
-            menuButtons.forEach(button => button.classList.remove('active'));
-            e.target.classList.add('active');
-
-            views.forEach(view => {
-                if (view) view.classList.toggle('active', view.id === targetViewId);
-            });
-        });
-    }
-
-    if (characterStatsDiv) {
-        characterStatsDiv.addEventListener('click', (e) => {
-            if (e.target && e.target.classList.contains('upgrade-button')) {
-                handleUpgrade(e.target.dataset.stat);
-            }
-        });
     }
 
     initializeGame();

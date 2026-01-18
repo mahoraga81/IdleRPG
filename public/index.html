@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,61 +7,49 @@
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-    <h1>Idle RPG</h1>
+    <div class="container">
+        <!-- Login View -->
+        <div id="login-view">
+            <h1>Idle RPG</h1>
+            <p>A minimalist idle role-playing game. Sign in to start your adventure.</p>
+            <a href="/api/login" class="login-button">Sign in with Google</a>
+        </div>
 
-    <!-- 로그인 뷰 -->
-    <div id="login-view">
-        <p>게임에 접속하려면 Google 계정으로 로그인하세요.</p>
-        <a href="/api/login" class="login-button">Google로 로그인</a>
+        <!-- Game View -->
+        <div id="game-view" class="hidden">
+            <header id="game-header">
+                <div id="user-info"></div>
+                <!-- Logout functionality can be added here later -->
+            </header>
+
+            <main id="main-content">
+                <!-- Left Column: Battle Screen -->
+                <section id="battle-screen" class="game-panel">
+                    <div id="stage-info">
+                        <h2 id="stage-level"></h2>
+                        <div class="progress-bar">
+                            <div id="stage-progress"></div>
+                        </div>
+                    </div>
+                    <div id="monster-area">
+                        <h3 id="monster-name"></h3>
+                        <div id="monster-hp-bar" class="progress-bar">
+                            <div id="monster-hp"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Right Column: Character & Actions -->
+                <section id="character-panel" class="game-panel">
+                    <div id="character-stats"></div>
+                </section>
+            </main>
+        </div>
     </div>
 
-    <!-- 전투 화면 (초기에는 숨김) -->
-    <section id="battle-screen" class="hidden">
-        <div id="stage-info">
-            <h2 id="stage-level">Stage 1-1</h2>
-            <div class="progress-bar-container">
-                <div id="stage-progress" class="progress-bar"></div>
-            </div>
-        </div>
-        <div id="monster-info">
-            <h3 id="monster-name">슬라임</h3>
-            <div class="hp-bar-container">
-                <div id="monster-hp" class="hp-bar"></div>
-            </div>
-        </div>
-    </section>
-
-    <!-- 게임 뷰 (초기에는 숨김) -->
-    <div id="game-view" class="hidden">
-        <header id="game-header">
-            <div id="user-info"></div>
-            <nav id="game-menu">
-                <button class="menu-button active" data-view="status-view">상태</button>
-                <button class="menu-button" data-view="equipment-view">장비</button>
-                <button class="menu-button" data-view="raid-view">레이드</button>
-            </nav>
-        </header>
-
-        <main id="game-content">
-            <!-- 상태 뷰 -->
-            <div id="status-view" class="view active">
-                <div id="character-stats">
-                    <!-- 캐릭터 스탯 정보가 여기에 동적으로 채워집니다. -->
-                </div>
-            </div>
-
-            <!-- 장비 뷰 (초기에는 숨김) -->
-            <div id="equipment-view" class="view hidden">
-                <h2>장비</h2>
-                <p>장착한 아이템이 여기에 표시됩니다.</p>
-            </div>
-
-            <!-- 레이드 뷰 (초기에는 숨김) -->
-            <div id="raid-view" class="view hidden">
-                <h2>레이드</h2>
-                <p>레이드 콘텐츠가 여기에 표시됩니다.</p>
-            </div>
-        </main>
+    <!-- Error Popup -->
+    <div id="error-popup">
+        <p id="error-message"></p>
     </div>
 
     <script src="/main.js"></script>

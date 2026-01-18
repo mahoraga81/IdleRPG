@@ -1,12 +1,15 @@
 /* --- General --- */
 :root {
-    --bg-color: #1a1a1a;
-    --surface-color: #2a2a2a;
-    --primary-color: #4CAF50;
-    --text-color: #f0f0f0;
-    --text-muted-color: #999;
-    --border-color: #444;
-    --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --bg-color: #121212; /* Darker background for more contrast */
+    --surface-color: #1e1e1e; /* Elevated surface color */
+    --primary-color: #00bcd4; /* A more vibrant cyan */
+    --text-color: #e0e0e0;
+    --text-muted-color: #8a8a8a;
+    --border-color: #333;
+    --font-family: 'Roboto', 'Segoe UI', sans-serif;
+    --border-radius: 12px;
+    --shadow-light: 0 4px 10px rgba(0, 0, 0, 0.2);
+    --shadow-deep: 0 8px 30px rgba(0, 0, 0, 0.4);
 }
 
 body {
@@ -18,7 +21,8 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    overflow: hidden;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 .hidden { display: none !important; }
@@ -26,15 +30,12 @@ body {
 /* --- App Container --- */
 .container {
     width: 100%;
-    max-width: 480px;
-    height: 100vh;
-    max-height: 900px;
-    background-color: var(--surface-color);
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    max-width: 1000px; /* Wider for 2-column layout */
+    height: 100%;
+    max-height: 800px;
+    background-color: transparent; /* Container is just a wrapper */
     display: flex;
     flex-direction: column;
-    overflow: hidden;
 }
 
 /* --- Login View --- */
@@ -46,29 +47,43 @@ body {
     padding: 40px;
     height: 100%;
     text-align: center;
+    background: var(--surface-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-deep);
 }
 
-#login-view h1 { margin-top: 0; color: var(--primary-color); }
-#login-view p { color: var(--text-muted-color); max-width: 300px; margin-bottom: 30px; }
+#login-view h1 { margin-top: 0; color: var(--primary-color); font-size: 3em;}
+#login-view p { color: var(--text-muted-color); max-width: 320px; margin-bottom: 40px; line-height: 1.6; }
 .login-button {
     background-color: var(--primary-color);
-    color: white;
-    padding: 12px 24px;
+    color: black;
+    font-weight: bold;
+    padding: 14px 28px;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 16px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    text-decoration: none;
+    transition: all 0.3s ease;
 }
-.login-button:hover { background-color: #45a049; }
+.login-button:hover { transform: translateY(-3px); box-shadow: 0 4px 15px rgba(0, 188, 212, 0.4); }
 
 /* --- Game View --- */
-#game-view { flex-grow: 1; display: flex; flex-direction: column; }
+#game-view { 
+    flex-grow: 1; 
+    display: flex; 
+    flex-direction: column; 
+    height: 100%;
+}
 
-header {
-    padding: 15px;
-    background-color: rgba(0, 0, 0, 0.2);
+#game-header {
+    padding: 15px 20px;
+    background-color: var(--surface-color);
     border-bottom: 1px solid var(--border-color);
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 #user-info {
@@ -76,162 +91,106 @@ header {
     align-items: center;
     gap: 12px;
 }
-
-#user-info img {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-}
-
+#user-info img { width: 40px; height: 40px; border-radius: 50%; }
 #user-info div { display: flex; flex-direction: column; }
 #user-info strong { font-size: 16px; }
 #user-info small { font-size: 12px; color: var(--text-muted-color); }
 
-main { flex-grow: 1; position: relative; }
-.view { display: none; padding: 20px; }
-.view.active { display: block; }
-
-/* --- Battle Screen --- */
-#battle-screen {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+#main-content {
+    flex-grow: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 20px;
+    background-color: var(--surface-color);
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+    box-shadow: var(--shadow-deep);
+    overflow-y: auto;
 }
 
-#stage-info { width: 100%; text-align: center; margin-bottom: 20px; }
-#stage-level { font-size: 20px; font-weight: bold; }
+.game-panel {
+    padding: 25px;
+    background-color: rgba(0,0,0,0.2);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-light);
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+/* --- Battle Screen Panel --- */
+#stage-info h2, #monster-area h3 {
+    margin: 0;
+    font-size: 1.5em;
+    color: var(--primary-color);
+    text-align: center;
+    margin-bottom: 15px;
+}
 
 .progress-bar {
     width: 100%;
-    height: 8px;
-    background-color: #555;
-    border-radius: 4px;
+    height: 10px;
+    background-color: #333;
+    border-radius: 5px;
     overflow: hidden;
-    margin-top: 5px;
 }
 
-#stage-progress {
+#stage-progress, #monster-hp {
     height: 100%;
     background-color: var(--primary-color);
-    border-radius: 4px;
-    transition: width 0.5s ease;
+    border-radius: 5px;
+    transition: width 0.3s ease;
 }
+#monster-hp { background-color: #e91e63; }
 
-#monster-area { width: 100%; text-align: center; margin-top: 40px; }
-#monster-name { font-size: 24px; margin-bottom: 10px; }
-#monster-hp-bar { width: 80%; height: 20px; background-color: #777; border-radius: 10px; margin: 0 auto; overflow: hidden; }
-#monster-hp { height: 100%; background-color: #c0392b; transition: width 0.1s linear; }
+#monster-area { margin-top: 20px; }
+#monster-name small { font-size: 0.7em; color: var(--text-muted-color); }
 
-
-/* --- Character Stats View --- */
+/* --- Character Stats Panel --- */
 #character-stats h3, #character-stats h4 {
     color: var(--primary-color);
-    margin-top: 15px;
-    margin-bottom: 10px;
+    margin: 0;
+    padding-bottom: 10px;
     border-bottom: 1px solid var(--border-color);
-    padding-bottom: 5px;
 }
+#character-stats h4 { font-size: 1.1em; color: var(--text-muted-color); font-weight: normal; margin-top: 15px; }
 
-#character-stats h4 {
-    font-size: 1em;
-    color: var(--text-muted-color);
-    font-weight: normal;
-}
-
-.stat-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 5px;
-    margin-bottom: 4px;
-    font-size: 14px;
-}
-
-.stat-item.derived-stat { background-color: rgba(0,0,0,0.1); }
-
-.stat-item > span:first-child { font-weight: bold; color: #ddd; }
+.stat-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; font-size: 15px; border-bottom: 1px solid var(--border-color);}
+.stat-item:last-child { border: none; }
+.stat-item > span:first-child { color: #ccc; }
 .stat-item .value { font-weight: bold; color: var(--primary-color); }
-
-.base-stat .stat-info, .base-stat .upgrade-control {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.base-stat .stat-level { color: var(--text-muted-color); font-size: 12px; }
-
-.upgrade-cost {
-    min-width: 60px;
-    text-align: right;
-    color: #f1c40f;
-    font-size: 14px;
-}
+.base-stat .stat-info { flex-grow: 1; }
+.base-stat .stat-level { color: var(--text-muted-color); font-size: 13px; margin-left: 8px; }
+.upgrade-control { display: flex; align-items: center; gap: 15px; }
+.upgrade-cost { min-width: 70px; text-align: right; color: #f9a825; font-size: 15px; }
 
 .upgrade-button {
-    background-color: #3498db;
-    color: white;
+    background-color: #00bcd4;
+    color: black;
     border: none;
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: bold;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: all 0.2s;
 }
+.upgrade-button:hover:not(:disabled) { transform: scale(1.1); background-color: #18ffff; }
+.upgrade-button:disabled { background-color: #444; color: #777; cursor: not-allowed; transform: none; }
 
-.upgrade-button:hover:not(:disabled) { background-color: #2980b9; }
 
-.upgrade-button:disabled {
-    background-color: #555;
-    color: #888;
-    cursor: not-allowed;
-}
+/* --- Error Popup --- */
+#error-popup { /* Styles remain the same */ }
 
-/* --- Navigation Menu --- */
-#game-menu {
-    display: flex;
-    border-top: 1px solid var(--border-color);
-}
-
-.menu-button {
-    flex-grow: 1;
-    padding: 15px 0;
-    background: none;
-    border: none;
-    color: var(--text-muted-color);
-    font-size: 16px;
-    cursor: pointer;
-    transition: background-color 0.2s, color 0.2s;
-}
-
-.menu-button:hover { background-color: rgba(255, 255, 255, 0.05); }
-
-.menu-button.active {
-    color: var(--primary-color);
-    border-top: 2px solid var(--primary-color);
-    margin-top: -2px;
-}
-
-/* Error Popup */
-#error-popup {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #e74c3c;
-    color: white;
-    padding: 15px 25px;
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease, bottom 0.3s ease;
-    z-index: 1000;
-}
-
-#error-popup.show {
-    opacity: 1;
-    visibility: visible;
-    bottom: 30px;
+/* --- Responsive Design --- */
+@media (max-width: 768px) {
+    body { padding: 0; }
+    .container { max-width: 100%; max-height: 100%; border-radius: 0; }
+    #main-content { 
+        grid-template-columns: 1fr; /* Stack columns on smaller screens */
+        padding: 15px;
+        gap: 15px;
+    }
+    .game-panel { padding: 20px; }
 }

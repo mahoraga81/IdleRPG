@@ -47,17 +47,45 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     function updateCharacterUI(character) {
         if (!characterStatsDiv || !character) return;
-        const statMapping = { str: '힘', dex: '민첩' };
+
+        // Derived stats mapping (Read-only)
+        const derivedStatMapping = {
+            hp: '체력',
+            ap: '공격력',
+            dps: 'DPS',
+            crit_rate: '치명타율',
+            evasion_rate: '회피율',
+        };
+
+        // Base stats mapping (Upgradeable)
+        const baseStatMapping = { str: '힘', dex: '민첩' };
+
+        // Function to format percentage values
+        const formatPercent = (value) => `${(value * 100).toFixed(2)}%`;
+
         characterStatsDiv.innerHTML = `
-            <h3>Character Stats</h3>
-            <div class="stat-item"><span>골드</span><span class="upgrade-cost">${Math.floor(character.gold)} G</span></div>
-            <div class="stat-item"><span>DPS</span><span class="upgrade-cost">${character.dps.toFixed(2)}</span></div>
+            <h3>캐릭터 상태</h3>
+            <div class="stat-item"><span>골드</span><span class="value">${Math.floor(character.gold)} G</span></div>
             <hr>
-            ${Object.keys(statMapping).map(stat => `
-                <div class="stat-item">
-                    <div class="stat-info"><span>${statMapping[stat]}</span><span class="stat-level">Lv. ${character[stat]}</span></div>
-                    <span class="upgrade-cost">${getUpgradeCost(character[stat])} G</span>
-                    <button class="upgrade-button" data-stat="${stat}">+</button>
+            <h4>파생 능력치</h4>
+            ${Object.keys(derivedStatMapping).map(stat => `
+                <div class="stat-item derived-stat">
+                    <span>${derivedStatMapping[stat]}</span>
+                    <span class="value">${stat.includes('_rate') ? formatPercent(character[stat]) : character[stat].toFixed(2)}</span>
+                </div>
+            `).join('')}
+            <hr>
+            <h4>기본 능력치 (강화 가능)</h4>
+            ${Object.keys(baseStatMapping).map(stat => `
+                <div class="stat-item base-stat">
+                    <div class="stat-info">
+                        <span>${baseStatMapping[stat]}</span>
+                        <span class="stat-level">Lv. ${character[stat]}</span>
+                    </div>
+                    <div class="upgrade-control">
+                        <span class="upgrade-cost">${getUpgradeCost(character[stat])} G</span>
+                        <button class="upgrade-button" data-stat="${stat}">+</button>
+                    </div>
                 </div>
             `).join('')}
         `;

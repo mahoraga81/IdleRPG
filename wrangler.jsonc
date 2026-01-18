@@ -5,5 +5,10 @@
   "main": "./functions/_worker.js",
   "assets": {
     "directory": "./"
+  },
+  "build": {
+    "esbuild": {
+      "external": ["mongodb"]
+    }
   }
 }
